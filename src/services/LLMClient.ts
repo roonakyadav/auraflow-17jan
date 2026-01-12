@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import chalk from 'chalk';
 
 // Track if the client has been initialized to prevent duplicate logs
 let isInitialized = false;
@@ -15,7 +16,7 @@ export class LLMClient {
     
     // Only log once when the first client is initialized
     if (!isInitialized) {
-      console.log('Groq client initialized with hardcoded API key');
+      console.log(chalk.green('✓ Groq client initialized with hardcoded API key'));
       isInitialized = true;
     }
     
@@ -41,7 +42,7 @@ export class LLMClient {
 
       return chatCompletion.choices[0]?.message?.content || '';
     } catch (error) {
-      console.error('Error calling LLM:', error);
+      console.error(chalk.red('Error calling LLM:'), error);
       throw error;
     }
   }

@@ -4,6 +4,7 @@ import * as yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import * as fs from 'fs';
 import * as yaml from 'js-yaml';
+import chalk from 'chalk';
 import { Agent } from './models/Agent';
 import { Workflow } from './models/Workflow';
 
@@ -228,28 +229,50 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         demandOption: true
       });
   }, async (argv: any) => {
-    console.log('Auraflow v0.1.0');
+    console.log(chalk.cyan(`
+  █████╗ ██╗   ██╗██████╗  █████╗ ███████╗██╗      ██████╗ ██╗    ██╗
+ ██╔══██╗██║   ██║██╔══██╗██╔══██╗██╔════╝██║     ██╔═══██╗██║    ██║
+ ███████║██║   ██║██████╔╝███████║█████╗  ██║     ██║   ██║██║ █╗ ██║
+ ██╔══██║██║   ██║██╔══██╗██╔══██║██╔══╝  ██║     ██║   ██║██║███╗██║
+ ██║  ██║╚██████╔╝██║  ██║██║  ██║███████╗███████╗╚██████╔╝╚███╔███╔╝
+ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚══╝╚══╝
+`));
+    console.log(chalk.magenta('Declarative Multi-Agent Orchestration Engine'));
+    console.log(chalk.yellow(`\nAuraflow v0.1.0`));
     console.log(`Loading workflow from file: ${argv.file}`);
     
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
     
-    // Print summary
-    console.log('\nWorkflow loaded successfully!');
-    console.log(`Workflow type: ${workflow.type}`);
-    console.log(`Agents loaded: ${agents.length}`);
+    // Print structured summary
+    console.log('\n' + '='.repeat(40));
+    console.log(chalk.blue('== WORKFLOW INFO =='));
+    console.log('='.repeat(40));
+    console.log(`ID: ${workflow.id}`);
+    console.log(`Type: ${workflow.type}`);
     
-    console.log('\nAgents:');
+    console.log('\n' + '='.repeat(40));
+    console.log(chalk.blue('== AGENTS =='));
+    console.log('='.repeat(40));
+    console.log(`Total agents: ${agents.length}`);
+    
     for (const agent of agents) {
-      console.log(`  - ${agent.id} (${agent.role})`);
+      console.log(`${chalk.yellow('-')} ${chalk.yellow(agent.id)} (${agent.role})`);
     }
     
     if (workflow.type === 'sequential') {
-      console.log('\nExecution order:');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.blue('== EXECUTION ORDER =='));
+      console.log('='.repeat(40));
       for (const step of workflow.steps) {
-        console.log(`  - Step: ${step.id}, Agent: ${step.agent}, Action: ${step.action}`);
+        const stepName = step.id ?? `step-${workflow.steps.indexOf(step) + 1}`;
+        const actionName = step.action ?? "execute";
+        console.log(`${chalk.green('▶')} ${chalk.yellow(stepName)} [${step.agent}] (Action: ${actionName})`);
       }
       
-      console.log('\nStarting sequential execution...');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.blue('== EXECUTION =='));
+      console.log('='.repeat(40));
+      console.log(chalk.green('Starting sequential execution...'));
       
       // Create a new context for execution
       const ContextClass = (await import('./models/Context')).Context;
@@ -261,17 +284,27 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       
       await executor.execute(workflow, agents, context);
     } else if (workflow.type === 'parallel') {
-      console.log('\nBranches:');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.blue('== BRANCHES =='));
+      console.log('='.repeat(40));
       for (const branch of workflow.branches) {
-        console.log(`  - Branch: ${branch.id}, Agent: ${branch.agent}, Action: ${branch.action}`);
+        const branchName = branch.id ?? `branch-${workflow.branches.indexOf(branch) + 1}`;
+        const actionName = branch.action ?? "execute";
+        console.log(`${chalk.green('▶')} ${chalk.yellow(branchName)} [${branch.agent}] (Action: ${actionName})`);
       }
       
       if (workflow.then) {
-        console.log('\nThen step:');
-        console.log(`  - Agent: ${workflow.then.agent}, Action: ${workflow.then.action}`);
+        console.log('\n' + '='.repeat(40));
+        console.log(chalk.blue('== THEN STEP =='));
+        console.log('='.repeat(40));
+        const thenAction = workflow.then.action ?? "execute";
+        console.log(`${chalk.green('▶ Then:')} [${workflow.then.agent}] (Action: ${thenAction})`);
       }
       
-      console.log('\nStarting parallel execution...');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.blue('== EXECUTION =='));
+      console.log('='.repeat(40));
+      console.log(chalk.green('Starting parallel execution...'));
       
       // Create a new context for execution
       const ContextClass = (await import('./models/Context')).Context;
@@ -284,7 +317,12 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       await executor.execute(workflow, agents, context);
     }
     
-    console.log('\nWorkflow execution completed.');
+    console.log('\n' + '='.repeat(40));
+    console.log(chalk.green('== EXECUTION COMPLETED =='));
+    console.log('='.repeat(40));
+    console.log(chalk.green('✔ WORKFLOW COMPLETED SUCCESSFULLY'));
+    console.log('='.repeat(40));
+    console.log(chalk.green('Execution finished. Results shown above.'));
   })
   .command('test-agent <agent-id> <file>', 'Test a single agent from a YAML file', (yargs: any) => {
     return yargs
@@ -299,7 +337,16 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         demandOption: true
       });
   }, async (argv: any) => {
-    console.log('Auraflow v0.1.0');
+    console.log(chalk.cyan(`
+  █████╗ ██╗   ██╗██████╗  █████╗ ███████╗██╗      ██████╗ ██╗    ██╗
+ ██╔══██╗██║   ██║██╔══██╗██╔══██╗██╔════╝██║     ██╔═══██╗██║    ██║
+ ███████║██║   ██║██████╔╝███████║█████╗  ██║     ██║   ██║██║ █╗ ██║
+ ██╔══██║██║   ██║██╔══██╗██╔══██║██╔══╝  ██║     ██║   ██║██║███╗██║
+ ██║  ██║╚██████╔╝██║  ██║██║  ██║███████╗███████╗╚██████╔╝╚███╔███╔╝
+ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚══╝╚══╝
+`));
+    console.log(chalk.magenta('Declarative Multi-Agent Orchestration Engine'));
+    console.log(chalk.yellow(`\nAuraflow v0.1.0`));
     console.log(`Testing agent '${argv['agent-id']}' from file: ${argv.file}`);
     
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
@@ -322,14 +369,25 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       // Run the agent
       const output = await agent.run(context);
       
-      console.log('\n--- AGENT OUTPUT ---');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.blue('== AGENT OUTPUT =='));
+      console.log('='.repeat(40));
       console.log(output);
-      console.log('--- END OUTPUT ---\n');
+      console.log('='.repeat(40));
+      console.log(chalk.blue('== OUTPUT END =='));
+      console.log('='.repeat(40));
       
-      console.log('Agent test completed successfully!');
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.green('== TEST COMPLETED =='));
+      console.log('='.repeat(40));
+      console.log(chalk.green('Agent test completed successfully!'));
     } catch (error: any) {
-      console.error('\nError during agent execution:');
-      console.error(error.message);
+      console.log('\n' + '='.repeat(40));
+      console.log(chalk.red('== ERROR OCCURRED =='));
+      console.log('='.repeat(40));
+      console.error(chalk.red('Error during agent execution:'));
+      console.error(chalk.red(error.message));
+      console.log('='.repeat(40));
       process.exit(1);
     }
   })
