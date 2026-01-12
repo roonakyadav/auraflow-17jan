@@ -1,0 +1,36 @@
+{
+  "name": "auraflow",
+  "version": "0.1.0",
+  "description": "A YAML-driven multi-agent orchestration engine",
+  "main": "dist/index.js",
+  "bin": {
+    "auraflow": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "npm run build && node dist/index.js",
+    "cli": "ts-node src/cli.ts"
+  },
+  "keywords": [
+    "multi-agent",
+    "orchestration",
+    "ai",
+    "yaml",
+    "workflow"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "groq-sdk": "^0.37.0",
+    "js-yaml": "^4.1.1",
+    "typescript": "^5.3.3",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.19.28",
+    "@types/yargs": "^17.0.35",
+    "ts-node": "^10.9.2"
+  }
+}

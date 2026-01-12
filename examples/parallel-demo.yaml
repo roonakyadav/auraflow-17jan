@@ -1,0 +1,65 @@
+# Parallel demo: Product evaluation with parallel expert reviews
+id: product-evaluation-review
+
+agents:
+  - id: tech_expert
+    role: "Technical Expert"
+    goal: "Evaluate the product from a technical perspective focusing on architecture, performance, and scalability"
+    tools: ["technical_analysis", "performance_review"]
+
+  - id: business_analyst
+    role: "Business Analyst"
+    goal: "Assess the product from a business standpoint including market fit, cost-effectiveness, and ROI"
+    tools: ["business_analysis", "financial_review"]
+
+  - id: ux_designer
+    role: "UX Designer"
+    goal: "Review the product from a user experience perspective focusing on usability and design"
+    tools: ["ux_evaluation", "usability_testing"]
+
+  - id: senior_reviewer
+    role: "Senior Product Reviewer"
+    goal: "Synthesize all expert evaluations and provide final recommendation with actionable insights"
+    tools: ["synthesis", "recommendation", "strategic_review"]
+
+workflow:
+  type: parallel
+  branches:
+    - id: technical_evaluation
+      agent: tech_expert
+      action: "perform_technical_review"
+      inputs:
+        product_name: "Enterprise AI Platform"
+        evaluation_criteria: ["architecture", "performance", "scalability", "security"]
+      outputs:
+        - technical_assessment
+
+    - id: business_evaluation
+      agent: business_analyst
+      action: "perform_business_review"
+      inputs:
+        product_name: "Enterprise AI Platform"
+        evaluation_criteria: ["market_fit", "cost_effectiveness", "ROI", "competitive_advantage"]
+      outputs:
+        - business_assessment
+
+    - id: ux_evaluation
+      agent: ux_designer
+      action: "perform_ux_review"
+      inputs:
+        product_name: "Enterprise AI Platform"
+        evaluation_criteria: ["usability", "design_quality", "user_satisfaction", "accessibility"]
+      outputs:
+        - ux_assessment
+
+  then:
+    agent: senior_reviewer
+    action: "synthesize_evaluations_and_recommend"
+    inputs:
+      technical_review: "{{ technical_assessment }}"
+      business_review: "{{ business_assessment }}"
+      ux_review: "{{ ux_assessment }}"
+      product_name: "Enterprise AI Platform"
+    outputs:
+      - final_product_recommendation
+      - strategic_roadmap

@@ -1,0 +1,37 @@
+# Sequential demo: Market research and report writing
+id: market-research-report
+
+agents:
+  - id: researcher
+    role: "Market Research Analyst"
+    goal: "Analyze the current state of AI technology market trends and compile comprehensive findings"
+    tools: ["market_analysis", "data_collection"]
+
+  - id: writer
+    role: "Business Report Writer"
+    goal: "Create a professional market analysis report based on research data"
+    tools: ["report_writing", "business_documentation"]
+
+workflow:
+  type: sequential
+  steps:
+    - id: research_step
+      agent: researcher
+      action: "analyze_ai_market_trends"
+      inputs:
+        focus_area: "enterprise AI adoption"
+        time_period: "last 2 years"
+      outputs:
+        - market_findings
+
+    - id: writing_step
+      agent: writer
+      action: "create_market_report"
+      dependsOn:
+        - research_step
+      inputs:
+        research_data: "{{ market_findings }}"
+        report_format: "executive_summary"
+        target_audience: "stakeholders"
+      outputs:
+        - final_market_report

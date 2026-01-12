@@ -1,0 +1,47 @@
+# Sample Auraflow parallel workflow configuration
+
+id: parallel-sample-workflow
+
+agents:
+  - id: researcher
+    role: "Research Specialist"
+    goal: "Gather information from various sources"
+    tools: ["web_search", "database_query"]
+  
+  - id: writer
+    role: "Content Writer"
+    goal: "Create well-structured content based on research"
+    tools: ["text_generation", "formatting"]
+    
+  - id: reviewer
+    role: "Quality Reviewer"
+    goal: "Review and validate content quality"
+    tools: ["validation", "quality_check"]
+
+workflow:
+  type: parallel  # Options: sequential, parallel
+  branches:
+    - id: research_branch
+      agent: researcher
+      action: "perform_research"
+      inputs:
+        topic: "AI orchestration systems"
+      outputs:
+        - research_results
+        
+    - id: writing_branch
+      agent: writer
+      action: "draft_content"
+      inputs:
+        topic: "AI orchestration systems"
+      outputs:
+        - draft_content
+  
+  then:
+    agent: reviewer
+    action: "review_and_merge"
+    inputs:
+      research_data: "{{ research_results }}"
+      draft_content: "{{ draft_content }}"
+    outputs:
+      - final_content

@@ -1,0 +1,19 @@
+agents:
+  - id: researcher
+    role: Research Assistant
+    goal: Research the electric vehicle market in India focusing on growth and key players
+
+  - id: writer
+    role: Content Writer
+    goal: Write a short blog post for college students using the research
+
+  - id: editor
+    role: Editor
+    goal: Improve clarity and polish the blog into a final version
+
+workflow:
+  type: sequential
+  steps:
+    - agent: researcher
+    - agent: writer
+    - agent: editor

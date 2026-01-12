@@ -1,0 +1,25 @@
+# Invalid Auraflow workflow - missing required fields
+
+id: invalid-workflow
+
+agents:
+  - id: ""  # Invalid - empty ID
+    role: "Research Specialist"
+    goal: "Gather information from various sources"
+    tools: ["web_search", "database_query"]
+  
+  - id: researcher  # Duplicate ID
+    role: "Content Writer"
+    goal: ""
+    tools: ["text_generation", "formatting"]
+
+workflow:
+  type: sequential
+  steps:
+    - id: research_step
+      agent: non_existent_agent  # References non-existent agent
+      action: "perform_research"
+      inputs:
+        topic: "AI orchestration systems"
+      outputs:
+        - research_results
