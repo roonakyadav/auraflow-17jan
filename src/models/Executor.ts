@@ -17,11 +17,11 @@ export class Executor {
    * @param context - Shared context for the workflow
    */
   async execute(workflow: Workflow, agents: Agent[], context: Context): Promise<void> {
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== EXECUTION STARTED =='));
-    console.log('='.repeat(40));
+    console.log('\nEXECUTION LOGS');
+    console.log('--------------');
     console.log(`ID: ${workflow.id}`);
     console.log(`Type: ${workflow.type}`);
+    console.log(`Stop on error: ${workflow.stopOnError}`);
     
     if (workflow.type === 'sequential') {
       console.log(`Number of Steps: ${workflow.steps.length}`);
@@ -44,9 +44,8 @@ export class Executor {
    * @param context - Shared context for the workflow
    */
   private async executeSequential(workflow: Workflow, agents: Agent[], context: Context): Promise<void> {
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== SEQUENTIAL EXECUTION =='));
-    console.log('='.repeat(40));
+    console.log('\nSEQUENTIAL EXECUTION');
+    console.log('-------------------');
     
     for (let i = 0; i < workflow.steps.length; i++) {
       const step = workflow.steps[i];
@@ -57,34 +56,47 @@ export class Executor {
       // Find the agent for this step
       const agent = agents.find(a => a.id === step.agent);
       if (!agent) {
-        throw new Error(`Agent with ID '${step.agent}' not found for step '${step.id}'`);
+        const errorMsg = `Agent with ID '${step.agent}' not found for step '${stepName}'`;
+        console.error(chalk.red(errorMsg));
+        if (workflow.stopOnError) {
+          throw new Error(errorMsg);
+        } else {
+          console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+          continue;
+        }
       }
       
       console.log(`  ${chalk.gray('Running:')} ${chalk.yellow(agent.id)} (${agent.role})`);
       
-      // Execute the agent with the current context
-      const output = await agent.run(context);
-      
-      // Append the agent's output to the context as a new message
-      context.addMessage(agent.id, output);
-      
-      console.log('\n' + '-'.repeat(40));
-      console.log(chalk.blue('== AGENT OUTPUT =='));
-      console.log('-'.repeat(40));
-      console.log(output);
-      console.log('-'.repeat(40));
-      console.log(chalk.blue('== OUTPUT END =='));
-      console.log('-'.repeat(40));
+      try {
+        // Execute the agent with the current context
+        const output = await agent.run(context);
+        
+        // Append the agent's output to the context as a new message
+        context.addMessage(agent.id, output);
+        
+        console.log('\nAGENT OUTPUT');
+        console.log('------------');
+        console.log(output);
+        console.log('------------');
+      } catch (error: any) {
+        const errorMsg = `Error executing agent '${agent.id}': ${error.message}`;
+        console.error(chalk.red(errorMsg));
+        if (workflow.stopOnError) {
+          throw new Error(errorMsg);
+        } else {
+          console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+          continue;
+        }
+      }
     }
     
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.green('== SEQUENTIAL EXECUTION COMPLETED =='));
-    console.log('='.repeat(40));
+    console.log('\nSEQUENTIAL EXECUTION COMPLETED');
+    console.log('------------------------------');
     
     // Print the final context messages
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== FINAL RESULTS =='));
-    console.log('='.repeat(40));
+    console.log('\nFINAL RESULT');
+    console.log('------------');
     
     // Group messages by agent ID
     const messages = context.getMessages();
@@ -98,14 +110,13 @@ export class Executor {
     
     // Print each agent's outputs
     Object.entries(messagesByAgent).forEach(([agentId, contents]) => {
-      console.log(`${chalk.yellow('[' + agentId + ']')}`);
+      console.log(`${chalk.yellow('AGENT: ' + agentId)}`);
+      console.log('-------------');
       contents.forEach(content => {
         console.log(content);
         console.log(); // Empty line between outputs from the same agent
       });
     });
-    
-    console.log('='.repeat(40));
   }
   
   /**
@@ -115,9 +126,8 @@ export class Executor {
    * @param context - Shared context for the workflow
    */
   private async executeParallel(workflow: Workflow, agents: Agent[], context: Context): Promise<void> {
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== PARALLEL EXECUTION =='));
-    console.log('='.repeat(40));
+    console.log('\nPARALLEL EXECUTION');
+    console.log('-----------------');
     
     // Execute all branches concurrently
     const branchPromises = workflow.branches.map(async (branch, index) => {
@@ -128,26 +138,41 @@ export class Executor {
       // Find the agent for this branch
       const agent = agents.find(a => a.id === branch.agent);
       if (!agent) {
-        throw new Error(`Agent with ID '${branch.agent}' not found for branch '${branch.id}'`);
+        const errorMsg = `Agent with ID '${branch.agent}' not found for branch '${branchName}'`;
+        console.error(chalk.red(errorMsg));
+        if (workflow.stopOnError) {
+          throw new Error(errorMsg);
+        } else {
+          console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+          return { branch, output: null, error: errorMsg };
+        }
       }
       
       console.log(`  ${chalk.gray('Running:')} ${chalk.yellow(agent.id)} (${agent.role})`);
       
-      // Execute the agent with the current context
-      const output = await agent.run(context);
-      
-      // Append the agent's output to the context as a new message
-      context.addMessage(agent.id, output);
-      
-      console.log('\n' + '-'.repeat(40));
-      console.log(chalk.blue('== BRANCH OUTPUT =='));
-      console.log('-'.repeat(40));
-      console.log(output);
-      console.log('-'.repeat(40));
-      console.log(chalk.blue('== OUTPUT END =='));
-      console.log('-'.repeat(40));
-      
-      return { branch, output };
+      try {
+        // Execute the agent with the current context
+        const output = await agent.run(context);
+        
+        // Append the agent's output to the context as a new message
+        context.addMessage(agent.id, output);
+        
+        console.log('\nBRANCH OUTPUT');
+        console.log('-------------');
+        console.log(output);
+        console.log('-------------');
+        
+        return { branch, output };
+      } catch (error: any) {
+        const errorMsg = `Error executing agent '${agent.id}': ${error.message}`;
+        console.error(chalk.red(errorMsg));
+        if (workflow.stopOnError) {
+          throw new Error(errorMsg);
+        } else {
+          console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+          return { branch, output: null, error: errorMsg };
+        }
+      }
     });
     
     // Wait for all branches to complete
@@ -163,34 +188,45 @@ export class Executor {
       // Find the 'then' agent
       const thenAgent = agents.find(a => a.id === workflow.then!.agent);
       if (!thenAgent) {
-        throw new Error(`'Then' agent with ID '${workflow.then!.agent}' not found`);
+        const errorMsg = `'Then' agent with ID '${workflow.then!.agent}' not found`;
+        console.error(chalk.red(errorMsg));
+        if (workflow.stopOnError) {
+          throw new Error(errorMsg);
+        } else {
+          console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+        }
+      } else {
+        console.log(`  ${chalk.gray('Running:')} ${chalk.yellow(thenAgent.id)} (${thenAgent.role})`);
+        
+        try {
+          // Execute the 'then' agent with the aggregated context
+          const finalOutput = await thenAgent.run(context);
+          
+          // Append the final agent's output to the context
+          context.addMessage(thenAgent.id, finalOutput);
+          
+          console.log('\nTHEN AGENT OUTPUT');
+          console.log('-----------------');
+          console.log(finalOutput);
+          console.log('-----------------');
+        } catch (error: any) {
+          const errorMsg = `Error executing 'then' agent '${thenAgent.id}': ${error.message}`;
+          console.error(chalk.red(errorMsg));
+          if (workflow.stopOnError) {
+            throw new Error(errorMsg);
+          } else {
+            console.log(chalk.yellow('Continuing execution (stopOnError=false)...'));
+          }
+        }
       }
-      
-      console.log(`  ${chalk.gray('Running:')} ${chalk.yellow(thenAgent.id)} (${thenAgent.role})`);
-      
-      // Execute the 'then' agent with the aggregated context
-      const finalOutput = await thenAgent.run(context);
-      
-      // Append the final agent's output to the context
-      context.addMessage(thenAgent.id, finalOutput);
-      
-      console.log('\n' + '-'.repeat(40));
-      console.log(chalk.blue('== THEN AGENT OUTPUT =='));
-      console.log('-'.repeat(40));
-      console.log(finalOutput);
-      console.log('-'.repeat(40));
-      console.log(chalk.blue('== OUTPUT END =='));
-      console.log('-'.repeat(40));
     }
     
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.green('== PARALLEL EXECUTION COMPLETED =='));
-    console.log('='.repeat(40));
+    console.log('\nPARALLEL EXECUTION COMPLETED');
+    console.log('----------------------------');
     
     // Print the final context messages
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== FINAL RESULTS =='));
-    console.log('='.repeat(40));
+    console.log('\nFINAL RESULT');
+    console.log('------------');
     
     // Group messages by agent ID
     const messages = context.getMessages();
@@ -204,13 +240,12 @@ export class Executor {
     
     // Print each agent's outputs
     Object.entries(messagesByAgent).forEach(([agentId, contents]) => {
-      console.log(`${chalk.yellow('[' + agentId + ']')}`);
+      console.log(`${chalk.yellow('AGENT: ' + agentId)}`);
+      console.log('-------------');
       contents.forEach(content => {
         console.log(content);
         console.log(); // Empty line between outputs from the same agent
       });
     });
-    
-    console.log('='.repeat(40));
   }
 }

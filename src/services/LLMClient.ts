@@ -16,6 +16,8 @@ export class LLMClient {
     
     // Only log once when the first client is initialized
     if (!isInitialized) {
+      console.log(chalk.green('INITIALIZATION'));
+      console.log(chalk.green('-------------'));
       console.log(chalk.green('✓ Groq client initialized with hardcoded API key'));
       isInitialized = true;
     }

@@ -17,6 +17,12 @@ export class Workflow {
   type: 'sequential' | 'parallel' | 'parallel_then';
 
   /**
+   * Whether to stop execution on first error
+   * Default: true
+   */
+  stopOnError: boolean;
+
+  /**
    * Array of steps in the workflow
    * Each step represents an action or task for an agent
    */
@@ -58,6 +64,7 @@ export class Workflow {
    * @param steps - Array of steps in the workflow
    * @param branches - Array of branches for parallel workflows (optional)
    * @param then - Final step for parallel workflows (optional)
+   * @param stopOnError - Whether to stop execution on first error (default: true)
    */
   constructor(
     id: string,
@@ -82,12 +89,14 @@ export class Workflow {
       action: string;
       inputs?: Record<string, any>;
       outputs?: string[];
-    }
+    },
+    stopOnError: boolean = true
   ) {
     this.id = id;
     this.type = type;
     this.steps = steps;
     this.branches = branches || [];
     this.then = then;
+    this.stopOnError = stopOnError;
   }
 }

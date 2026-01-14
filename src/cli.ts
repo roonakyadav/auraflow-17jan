@@ -8,6 +8,18 @@ import chalk from 'chalk';
 import { Agent } from './models/Agent';
 import { Workflow } from './models/Workflow';
 
+// Display the Auraflow ASCII banner at CLI startup
+console.log(chalk.cyan(`
+  █████╗ ██╗   ██╗██████╗  █████╗ ███████╗██╗      ██████╗ ██╗    ██╗
+ ██╔══██╗██║   ██║██╔══██╗██╔══██╗██╔════╝██║     ██╔═══██╗██║    ██║
+ ███████║██║   ██║██████╔╝███████║█████╗  ██║     ██║   ██║██║ █╗ ██║
+ ██╔══██║██║   ██║██╔══██╗██╔══██║██╔══╝  ██║     ██║   ██║██║███╗██║
+ ██║  ██║╚██████╔╝██║  ██║██║  ██║███████╗███████╗╚██████╔╝╚███╔███╔╝
+ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚══╝╚══╝
+`));
+console.log(chalk.magenta('Declarative Multi-Agent Orchestration Engine'));
+console.log(chalk.yellow(`\nAuraflow v0.1.0`));
+
 interface YamlWorkflow {
   id?: string;
   agents: {
@@ -18,6 +30,7 @@ interface YamlWorkflow {
   }[];
   workflow: {
     type: 'sequential' | 'parallel';
+    stopOnError?: boolean;
     steps?: Array<{
       id: string;
       agent: string;
@@ -167,6 +180,9 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
     const rawType = yamlData.workflow.type;
     const normalizedType = String(rawType).trim().toLowerCase();
     
+    // Get stopOnError value, defaulting to true
+    const stopOnError = yamlData.workflow.stopOnError ?? true;
+    
     // Create Workflow instance based on normalized type
     let workflowSteps: any[] = [];
     let workflowBranches: any[] = [];
@@ -205,7 +221,8 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       normalizedType as 'sequential' | 'parallel' | 'parallel_then',  // Use normalized type
       workflowSteps,
       workflowBranches,
-      workflowThen
+      workflowThen,
+      stopOnError  // Pass the stopOnError value
     );
 
     return { agents, workflow };
@@ -227,51 +244,87 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         describe: 'YAML file containing the workflow definition',
         type: 'string',
         demandOption: true
+      })
+      .option('dry-run', {
+        alias: 'n',
+        type: 'boolean',
+        description: 'Parse and validate config, but do not execute agents',
+        default: false
       });
   }, async (argv: any) => {
-    console.log(chalk.cyan(`
-  █████╗ ██╗   ██╗██████╗  █████╗ ███████╗██╗      ██████╗ ██╗    ██╗
- ██╔══██╗██║   ██║██╔══██╗██╔══██╗██╔════╝██║     ██╔═══██╗██║    ██║
- ███████║██║   ██║██████╔╝███████║█████╗  ██║     ██║   ██║██║ █╗ ██║
- ██╔══██║██║   ██║██╔══██╗██╔══██║██╔══╝  ██║     ██║   ██║██║███╗██║
- ██║  ██║╚██████╔╝██║  ██║██║  ██║███████╗███████╗╚██████╔╝╚███╔███╔╝
- ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚══╝╚══╝
-`));
-    console.log(chalk.magenta('Declarative Multi-Agent Orchestration Engine'));
-    console.log(chalk.yellow(`\nAuraflow v0.1.0`));
     console.log(`Loading workflow from file: ${argv.file}`);
     
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
     
     // Print structured summary
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== WORKFLOW INFO =='));
-    console.log('='.repeat(40));
+    console.log('\nWORKFLOW INFORMATION');
+    console.log('--------------------');
     console.log(`ID: ${workflow.id}`);
     console.log(`Type: ${workflow.type}`);
     
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.blue('== AGENTS =='));
-    console.log('='.repeat(40));
+    console.log('\nAGENTS');
+    console.log('------');
     console.log(`Total agents: ${agents.length}`);
     
     for (const agent of agents) {
       console.log(`${chalk.yellow('-')} ${chalk.yellow(agent.id)} (${agent.role})`);
     }
     
+    // Check if dry-run mode is enabled
+    if (argv.dryRun) {
+      console.log('\nDRY RUN MODE');
+      console.log('------------');
+      console.log(`Workflow Type: ${workflow.type}`);
+      
+      console.log('\nEXECUTION PLAN:');
+      if (workflow.type === 'sequential') {
+        for (const step of workflow.steps) {
+          const stepName = step.id ?? `step-${workflow.steps.indexOf(step) + 1}`;
+          console.log(`${chalk.green('▶')} ${chalk.yellow(stepName)} → ${step.agent}`);
+        }
+      } else if (workflow.type === 'parallel') {
+        if (workflow.branches.length > 0) {
+          const branchNames = workflow.branches.map(branch => branch.agent).join(' ─ ');
+          console.log(`${branchNames} ─→ ${workflow.then ? workflow.then.agent : 'result'}`);
+        }
+      }
+      
+      console.log('\nEXECUTION GRAPH');
+      console.log('---------------');
+      if (workflow.type === 'sequential') {
+        const agentSequence = workflow.steps.map(step => step.agent).join(' → ');
+        console.log(agentSequence);
+      } else if (workflow.type === 'parallel') {
+        if (workflow.branches.length > 0) {
+          const branchAgents = workflow.branches.map(branch => branch.agent);
+          if (workflow.then) {
+            console.log(branchAgents.join(' ─ ') + ` ─→ ${workflow.then.agent}`);
+          } else {
+            console.log(branchAgents.join(' ─ '));
+          }
+        }
+      }
+      
+      console.log('\nNo agents executed.');
+      process.exit(0);
+    }
+    
     if (workflow.type === 'sequential') {
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.blue('== EXECUTION ORDER =='));
-      console.log('='.repeat(40));
+      console.log('\nEXECUTION PLAN');
+      console.log('--------------');
       for (const step of workflow.steps) {
         const stepName = step.id ?? `step-${workflow.steps.indexOf(step) + 1}`;
         const actionName = step.action ?? "execute";
         console.log(`${chalk.green('▶')} ${chalk.yellow(stepName)} [${step.agent}] (Action: ${actionName})`);
       }
       
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.blue('== EXECUTION =='));
-      console.log('='.repeat(40));
+      console.log('\nEXECUTION GRAPH');
+      console.log('---------------');
+      const agentSequence = workflow.steps.map(step => step.agent).join(' → ');
+      console.log(agentSequence);
+      
+      console.log('\nEXECUTION LOGS');
+      console.log('--------------');
       console.log(chalk.green('Starting sequential execution...'));
       
       // Create a new context for execution
@@ -282,11 +335,15 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       const ExecutorClass = (await import('./models/Executor')).Executor;
       const executor = new ExecutorClass();
       
-      await executor.execute(workflow, agents, context);
+      try {
+        await executor.execute(workflow, agents, context);
+      } catch (error: any) {
+        console.error(chalk.red('Execution error:'), error.message);
+        process.exit(2);
+      }
     } else if (workflow.type === 'parallel') {
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.blue('== BRANCHES =='));
-      console.log('='.repeat(40));
+      console.log('\nBRANCHES');
+      console.log('--------');
       for (const branch of workflow.branches) {
         const branchName = branch.id ?? `branch-${workflow.branches.indexOf(branch) + 1}`;
         const actionName = branch.action ?? "execute";
@@ -294,16 +351,23 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       }
       
       if (workflow.then) {
-        console.log('\n' + '='.repeat(40));
-        console.log(chalk.blue('== THEN STEP =='));
-        console.log('='.repeat(40));
+        console.log('\nTHEN STEP');
+        console.log('---------');
         const thenAction = workflow.then.action ?? "execute";
         console.log(`${chalk.green('▶ Then:')} [${workflow.then.agent}] (Action: ${thenAction})`);
       }
       
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.blue('== EXECUTION =='));
-      console.log('='.repeat(40));
+      console.log('\nEXECUTION GRAPH');
+      console.log('---------------');
+      const branchAgents = workflow.branches.map(branch => branch.agent);
+      if (workflow.then) {
+        console.log(branchAgents.join(' ─ ') + ` ─→ ${workflow.then.agent}`);
+      } else {
+        console.log(branchAgents.join(' ─ '));
+      }
+      
+      console.log('\nEXECUTION LOGS');
+      console.log('--------------');
       console.log(chalk.green('Starting parallel execution...'));
       
       // Create a new context for execution
@@ -314,15 +378,18 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       const ExecutorClass = (await import('./models/Executor')).Executor;
       const executor = new ExecutorClass();
       
-      await executor.execute(workflow, agents, context);
+      try {
+        await executor.execute(workflow, agents, context);
+      } catch (error: any) {
+        console.error(chalk.red('Execution error:'), error.message);
+        process.exit(2);
+      }
     }
     
-    console.log('\n' + '='.repeat(40));
-    console.log(chalk.green('== EXECUTION COMPLETED =='));
-    console.log('='.repeat(40));
+    console.log('\nFINAL RESULT');
+    console.log('------------');
     console.log(chalk.green('✔ WORKFLOW COMPLETED SUCCESSFULLY'));
-    console.log('='.repeat(40));
-    console.log(chalk.green('Execution finished. Results shown above.'));
+    console.log('Execution finished. Results shown above.');
   })
   .command('test-agent <agent-id> <file>', 'Test a single agent from a YAML file', (yargs: any) => {
     return yargs
@@ -337,16 +404,6 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         demandOption: true
       });
   }, async (argv: any) => {
-    console.log(chalk.cyan(`
-  █████╗ ██╗   ██╗██████╗  █████╗ ███████╗██╗      ██████╗ ██╗    ██╗
- ██╔══██╗██║   ██║██╔══██╗██╔══██╗██╔════╝██║     ██╔═══██╗██║    ██║
- ███████║██║   ██║██████╔╝███████║█████╗  ██║     ██║   ██║██║ █╗ ██║
- ██╔══██║██║   ██║██╔══██╗██╔══██║██╔══╝  ██║     ██║   ██║██║███╗██║
- ██║  ██║╚██████╔╝██║  ██║██║  ██║███████╗███████╗╚██████╔╝╚███╔███╔╝
- ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝  ╚══╝╚══╝
-`));
-    console.log(chalk.magenta('Declarative Multi-Agent Orchestration Engine'));
-    console.log(chalk.yellow(`\nAuraflow v0.1.0`));
     console.log(`Testing agent '${argv['agent-id']}' from file: ${argv.file}`);
     
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
@@ -369,25 +426,17 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       // Run the agent
       const output = await agent.run(context);
       
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.blue('== AGENT OUTPUT =='));
-      console.log('='.repeat(40));
+      console.log('\nAGENT OUTPUT');
+      console.log('------------');
       console.log(output);
-      console.log('='.repeat(40));
-      console.log(chalk.blue('== OUTPUT END =='));
-      console.log('='.repeat(40));
-      
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.green('== TEST COMPLETED =='));
-      console.log('='.repeat(40));
+      console.log('------------');
       console.log(chalk.green('Agent test completed successfully!'));
     } catch (error: any) {
-      console.log('\n' + '='.repeat(40));
-      console.log(chalk.red('== ERROR OCCURRED =='));
-      console.log('='.repeat(40));
+      console.log('\nERROR OCCURRED');
+      console.log('--------------');
       console.error(chalk.red('Error during agent execution:'));
       console.error(chalk.red(error.message));
-      console.log('='.repeat(40));
+      console.log('--------------');
       process.exit(1);
     }
   })
