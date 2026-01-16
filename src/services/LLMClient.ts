@@ -12,13 +12,17 @@ export class LLMClient {
   private readonly DEFAULT_MODEL = 'llama-3.1-8b-instant';
 
   constructor() {
-    // Hardcoded API key for hackathon demo
+    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    
+    if (!GROQ_API_KEY) {
+      throw new Error('GROQ_API_KEY environment variable is required');
+    }
     
     // Only log once when the first client is initialized
     if (!isInitialized) {
       console.log(chalk.green('INITIALIZATION'));
       console.log(chalk.green('-------------'));
-      console.log(chalk.green('✓ Groq client initialized with hardcoded API key'));
+      console.log(chalk.green('✓ Groq client initialized'));
       isInitialized = true;
     }
     
