@@ -1,0 +1,95 @@
+id: product-launch-analysis
+
+agents:
+  - id: market_researcher
+    role: Market Researcher
+    goal: Analyze market demand and competition
+
+  - id: financial_analyst
+    role: Financial Analyst
+    goal: Evaluate cost, pricing, and profitability
+
+  - id: tech_lead
+    role: Technical Lead
+    goal: Assess technical feasibility and risks
+
+  - id: legal_advisor
+    role: Legal Advisor
+    goal: Identify regulatory and compliance risks
+
+  - id: ops_manager
+    role: Operations Manager
+    goal: Evaluate operational readiness
+
+  - id: executive_board
+    role: Executive Board
+    goal: Make final go or no-go decision
+
+workflow:
+  type: parallel
+
+  branches:
+    - id: market_analysis
+      agent: market_researcher
+      action: analyze_market
+      outputs:
+        produced:
+          - market_size
+          - competitor_analysis
+          - demand_forecast
+
+    - id: financial_analysis
+      agent: financial_analyst
+      action: analyze_finances
+      outputs:
+        produced:
+          - cost_breakdown
+          - pricing_strategy
+          - profit_projection
+
+    - id: technical_analysis
+      agent: tech_lead
+      action: analyze_technology
+      outputs:
+        produced:
+          - technical_feasibility
+          - technical_risks
+
+    - id: legal_analysis
+      agent: legal_advisor
+      action: analyze_compliance
+      outputs:
+        produced:
+          - regulatory_risks
+          - compliance_requirements
+
+    - id: operations_analysis
+      agent: ops_manager
+      action: analyze_operations
+      outputs:
+        produced:
+          - operational_readiness
+          - scaling_challenges
+
+  then:
+    agent: executive_board
+    action: make_final_decision
+    inputs:
+      required:
+        - market_size
+        - demand_forecast
+        - profit_projection
+        - technical_feasibility
+        - regulatory_risks
+        - operational_readiness
+      optional:
+        - competitor_analysis
+        - pricing_strategy
+        - technical_risks
+        - compliance_requirements
+        - scaling_challenges
+    outputs:
+      produced:
+        - final_decision
+        - decision_rationale
+

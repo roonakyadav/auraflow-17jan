@@ -1,0 +1,81 @@
+# Demo 2b: Conditional branching based on agent output
+# Demonstrates conditional workflow that selects next step based on agent output
+id: conditional-branching-demo
+
+agents:
+  - id: tech_analyst
+    role: "Technical Analyst"
+    goal: "Analyze the technical aspects of the proposed solution"
+    tools: ["technical_analysis", "feasibility_check"]
+
+  - id: business_analyst
+    role: "Business Analyst"
+    goal: "Assess the business implications and ROI of the proposal"
+    tools: ["business_analysis", "roi_calculation"]
+
+  - id: risk_assessor
+    role: "Risk Assessor"
+    goal: "Identify potential risks and mitigation strategies"
+    tools: ["risk_analysis", "mitigation_planning"]
+
+  - id: decision_maker
+    role: "Executive Decision Maker"
+    goal: "Make a go/no-go decision based on analysis"
+    tools: ["decision_making", "strategic_planning"]
+
+  - id: project_manager
+    role: "Project Manager"
+    goal: "Create implementation plan if approved"
+    tools: ["project_planning", "resource_allocation"]
+
+  - id: rejection_handler
+    role: "Rejection Handler"
+    goal: "Document reasons for rejection and suggest alternatives"
+    tools: ["documentation", "alternative_proposal"]
+
+workflow:
+  type: conditional
+  steps:
+    # Initial step to trigger the condition
+    - id: initial_analysis
+      agent: decision_maker
+      action: "evaluate_proposal_summary"
+      inputs:
+        required: []
+        optional: []
+      outputs:
+        produced: ["proposal_summary"]
+
+  # Conditional logic based on initial analysis output
+  condition:
+    stepId: initial_analysis
+    cases:
+      - condition: "high confidence"
+        step:
+          id: approve_project
+          agent: project_manager
+          action: "create_implementation_plan"
+          inputs:
+            required: ["proposal_summary"]
+            optional: []
+          outputs:
+            produced: ["implementation_plan", "resource_allocation"]
+      - condition: "low confidence"
+        step:
+          id: reject_project
+          agent: rejection_handler
+          action: "document_rejection_reasons"
+          inputs:
+            required: ["proposal_summary"]
+            optional: []
+          outputs:
+            produced: ["rejection_reasons", "alternative_suggestions"]
+    default:
+      id: pending_decision
+      agent: decision_maker
+      action: "request_additional_information"
+      inputs:
+        required: ["proposal_summary"]
+        optional: []
+      outputs:
+        produced: ["additional_requirements", "clarification_needed"]

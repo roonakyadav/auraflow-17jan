@@ -1,0 +1,32 @@
+agents:
+  - id: data_collector
+    role: Data Collector
+    goal: Gather raw data from multiple APIs
+
+  - id: data_cleaner
+    role: Data Cleaner
+    goal: Clean and normalize the collected data
+
+  - id: model_trainer
+    role: Machine Learning Trainer
+    goal: Train a machine learning model on the cleaned data
+
+  - id: model_evaluator
+    role: Model Evaluator
+    goal: Evaluate the trained model’s performance
+
+  - id: report_generator
+    role: Report Generator
+    goal: Generate a final report with results and recommendations
+
+workflow:
+  type: sequential
+  steps:
+    - agent: data_collector
+    - agent: data_cleaner
+    - type: parallel
+      branches:
+        - agent: model_trainer
+        - agent: model_evaluator
+    - agent: report_generator
+

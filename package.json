@@ -22,14 +22,18 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "boxen": "^8.0.1",
     "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
     "groq-sdk": "^0.37.0",
     "js-yaml": "^4.1.1",
     "typescript": "^5.3.3",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@types/boxen": "^2.1.0",
     "@types/chalk": "^0.4.31",
+    "@types/cli-table": "^0.3.4",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.28",
     "@types/yargs": "^17.0.35",

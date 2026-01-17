@@ -1,0 +1,51 @@
+# Corrected version of the complex workflow
+id: complex-workflow
+
+agents:
+  - id: data_collector
+    role: Data Collector
+    goal: Gather data from multiple external APIs
+
+  - id: data_transformer
+    role: Data Transformer
+    goal: Normalize and enrich data
+
+  - id: sentiment_analyzer
+    role: Sentiment Analyzer
+    goal: Analyze sentiment from text data
+
+  - id: trend_detector
+    role: Trend Detector
+    goal: Identify emerging trends from data
+
+  - id: report_aggregator
+    role: Report Aggregator
+    goal: Combine findings into a comprehensive report
+
+  - id: quality_checker
+    role: Quality Checker
+    goal: Validate the final report for accuracy
+
+workflow:
+  type: sequential
+  steps:
+    - id: collect_data
+      agent: data_collector
+      action: "gather_external_data"
+      inputs:
+        required: []
+        optional: ["api_endpoints", "data_sources"]
+      outputs:
+        produced: ["raw_data"]
+
+    - id: transform_data
+      agent: data_transformer
+      action: "normalize_and_enrich"
+      inputs:
+        required: ["raw_data"]
+        optional: []
+      outputs:
+        produced: ["processed_data"]
+
+# Note: To achieve parallel processing, we'd need to use a parallel workflow type instead
+# The original mixed approach isn't supported in the current schema

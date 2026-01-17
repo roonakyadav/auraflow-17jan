@@ -12,11 +12,11 @@ export class LLMClient {
   private readonly DEFAULT_MODEL = 'llama-3.1-8b-instant';
 
   constructor() {
-    const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    // Hardcoded API key to prevent environment variable issues
+    const GROQ_API_KEY = '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';
     
-    if (!GROQ_API_KEY) {
-      throw new Error('GROQ_API_KEY environment variable is required');
-    }
+    // Alternative: Check environment variable first, fallback to hardcoded
+    // const GROQ_API_KEY = process.env.GROQ_API_KEY || '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';
     
     // Only log once when the first client is initialized
     if (!isInitialized) {
