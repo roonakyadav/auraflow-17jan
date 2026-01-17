@@ -67,6 +67,9 @@ export class Executor {
       console.log(`  Running: ${agent.id} (${agent.role})`);
       
       try {
+        // Prepare context information before execution
+        this.logContextPassing(agent, context, step);
+        
         // Execute the agent with the current context
         const output = await agent.run(context);
         
@@ -81,6 +84,9 @@ export class Executor {
         }
         
         console.log('  Output:', output.substring(0, 200) + (output.length > 200 ? '...' : ''));
+        
+        // Log what was added to the context
+        this.logContextUpdate(agent, output, step.outputs?.produced || []);
       } catch (error: any) {
         const errorMsg = `Error executing agent '${agent.id}': ${error.message}`;
         console.error('ERROR:', errorMsg);
@@ -135,6 +141,86 @@ export class Executor {
     }
     
     return true; // All required inputs are available
+  }
+  
+  /**
+   * Logs the context being passed to an agent
+   * @param agent - The agent that will receive the context
+   * @param context - The current context being passed
+   * @param step - The step configuration
+   */
+  private logContextPassing(agent: Agent, context: Context, step?: {
+    id: string;
+    agent: string;
+    action: string;
+    dependsOn?: string[];
+    inputs?: {
+      required: string[];
+      optional?: string[];
+    };
+    outputs?: {
+      produced: string[];
+    };
+  }): void {
+    console.log(`\n┌─────────────────────────────────────────────────────────┐`);
+    console.log(`│ CONTEXT PASSING TO AGENT: ${agent.id.padEnd(30)} │`);
+    console.log(`│ ROLE: ${agent.role.substring(0, 46).padEnd(50)} │`);
+    
+    // Show required inputs if specified
+    if (step?.inputs?.required && step.inputs.required.length > 0) {
+      console.log(`│ Required inputs: ${step.inputs.required.join(', ').substring(0, 30).padEnd(30)} │`);
+      
+      // Check and show the actual values of required inputs
+      for (const inputKey of step.inputs.required) {
+        const inputValue = context.getOutput(inputKey);
+        if (inputValue !== undefined) {
+          const displayValue = typeof inputValue === 'string' ? inputValue.substring(0, 30) : JSON.stringify(inputValue).substring(0, 30);
+          console.log(`│   → ${inputKey}: ${displayValue.padEnd(45)} │`);
+        } else {
+          console.log(`│   → ${inputKey}: [NOT FOUND - WILL FAIL]              │`);
+        }
+      }
+    }
+    
+    // Show recent messages in context
+    const messages = context.getMessages();
+    if (messages.length > 0) {
+      const recentMessages = messages.slice(-2); // Show last 2 messages
+      console.log(`│ Recent context messages:                               │`);
+      for (const msg of recentMessages) {
+        const contentPreview = msg.content.substring(0, 25).replace(/\n/g, ' ').padEnd(25);
+        console.log(`│   ← From ${msg.agentId} (${contentPreview}) │`);
+      }
+    }
+    
+    console.log(`└─────────────────────────────────────────────────────────┘`);
+  }
+  
+  /**
+   * Logs the context update after an agent executes
+   * @param agent - The agent that just executed
+   * @param output - The output from the agent
+   * @param outputKeys - Keys under which the output is stored
+   */
+  private logContextUpdate(agent: Agent, output: string, outputKeys: string[]): void {
+    console.log(`\n┌─────────────────────────────────────────────────────────┐`);
+    console.log(`│ CONTEXT UPDATE FROM AGENT: ${agent.id.padEnd(25)} │`);
+    console.log(`│ ROLE: ${agent.role.substring(0, 46).padEnd(50)} │`);
+    
+    // Show the output that was added to the context
+    const outputPreview = output.substring(0, 50).replace(/\n/g, ' ').padEnd(50);
+    console.log(`│ Output added to context:                                  │`);
+    console.log(`│   → ${outputPreview.substring(0, 48)} │`);
+    
+    // Show where the output was stored
+    if (outputKeys.length > 0) {
+      console.log(`│ Stored under keys: ${outputKeys.join(', ').substring(0, 35).padEnd(35)} │`);
+      for (const key of outputKeys) {
+        console.log(`│   → ${key}                                           │`);
+      }
+    }
+    
+    console.log(`└─────────────────────────────────────────────────────────┘`);
   }
   
   /**
@@ -209,10 +295,17 @@ export class Executor {
         }
         
         console.log(`\nExecuting: ${branchStep.id} → ${branchStep.agent}`);
+        
+        // Prepare context information before execution
+        this.logContextPassing(branchAgent, context, branchStep);
+        
         const branchOutput = await branchAgent.run(context);
         context.addMessage(branchAgent.id, branchOutput);
         
         console.log('  Output:', branchOutput.substring(0, 200) + (branchOutput.length > 200 ? '...' : ''));
+        
+        // Log what was added to the context
+        this.logContextUpdate(branchAgent, branchOutput, branchStep.outputs?.produced || []);
       } else {
         console.log('\nNo condition matched and no default step defined');
       }
@@ -269,6 +362,9 @@ export class Executor {
           }
         }
         
+        // Prepare context information before execution
+        this.logContextPassing(agent, context, branch);
+        
         // Execute the agent with the current context
         const output = await agent.run(context);
         
@@ -283,6 +379,9 @@ export class Executor {
         }
         
         console.log('  Output:', output.substring(0, 200) + (output.length > 200 ? '...' : ''));
+        
+        // Log what was added to the context
+        this.logContextUpdate(agent, output, branch.outputs?.produced || []);
         
         return { branch, output };
       } catch (error: any) {
@@ -331,6 +430,9 @@ export class Executor {
               console.log('INFO: Continuing execution (stopOnError=false)...');
             }
           } else {
+            // Prepare context information before execution
+            this.logContextPassing(thenAgent, context, {...workflow.then, id: 'then-step'});
+            
             // Execute the 'then' agent with the aggregated context
             const finalOutput = await thenAgent.run(context);
             
@@ -345,6 +447,9 @@ export class Executor {
             }
             
             console.log('  Output:', finalOutput.substring(0, 200) + (finalOutput.length > 200 ? '...' : ''));
+            
+            // Log what was added to the context
+            this.logContextUpdate(thenAgent, finalOutput, workflow.then.outputs?.produced || []);
           }
         } catch (error: any) {
           const errorMsg = `Error executing 'then' agent '${thenAgent.id}': ${error.message}`;

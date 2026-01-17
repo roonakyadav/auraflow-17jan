@@ -1,0 +1,45 @@
+# Demo: Simple Sub-agents functionality
+# Demonstrates parent agent delegating a single task to a sub-agent
+
+id: simple-sub-agents-demo
+
+agents:
+  - id: project_coordinator
+    role: "Project Coordinator"
+    goal: "Coordinate the project by delegating specific tasks to specialized sub-agents"
+    tools: ["task_coordination", "progress_tracking"]
+    subAgents:
+      - id: research_specialist
+        role: "Research Specialist"
+        goal: "Conduct detailed research on assigned topics"
+        tools: ["literature_review", "data_collection"]
+      - id: report_writer
+        role: "Report Writer"
+        goal: "Write comprehensive reports based on research findings"
+        tools: ["writing", "editing"]
+
+  - id: senior_manager
+    role: "Senior Manager"
+    goal: "Review and approve the final deliverables"
+    tools: ["review", "approval"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: coordination_phase
+      agent: project_coordinator
+      action: "coordinate_research_and_documentation"
+      inputs:
+        required: []
+        optional: ["project_brief"]
+      outputs:
+        produced: ["coordinated_result"]
+        
+    - id: approval_phase
+      agent: senior_manager
+      action: "review_and_approve"
+      inputs:
+        required: ["coordinated_result"]
+      outputs:
+        produced: ["approval_status"]

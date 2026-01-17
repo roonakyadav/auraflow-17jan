@@ -1,0 +1,49 @@
+# Demo: Sub-agents functionality
+# Demonstrates parent agent delegating tasks to sub-agents
+
+id: sub-agents-demo
+
+agents:
+  - id: project_manager
+    role: "Senior Project Manager"
+    goal: "Oversee the project and delegate tasks to specialized sub-agents"
+    tools: ["task_delegation", "progress_monitoring"]
+    subAgents:
+      - id: frontend_dev
+        role: "Frontend Developer"
+        goal: "Implement the frontend components of the project"
+        tools: ["react", "typescript", "css"]
+      - id: backend_dev
+        role: "Backend Developer"
+        goal: "Implement the backend components of the project"
+        tools: ["nodejs", "express", "database_design"]
+      - id: qa_engineer
+        role: "QA Engineer"
+        goal: "Test the project components and ensure quality"
+        tools: ["testing", "debugging", "automation"]
+
+  - id: cto
+    role: "Chief Technology Officer"
+    goal: "Review technical decisions and provide strategic direction"
+    tools: ["architecture_review", "technology_strategy"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: planning_phase
+      agent: project_manager
+      action: "plan_project_with_sub_agents"
+      inputs:
+        required: []
+        optional: ["requirements"]
+      outputs:
+        produced: ["project_plan"]
+        
+    - id: review_phase
+      agent: cto
+      action: "review_project_plan"
+      inputs:
+        required: ["project_plan"]
+      outputs:
+        produced: ["cto_feedback"]

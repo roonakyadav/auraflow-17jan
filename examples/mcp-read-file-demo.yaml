@@ -1,0 +1,33 @@
+id: mcp-read-file-demo
+name: "MCP File Reading Demonstration"
+description: "Demonstrate file system MCP reading actual files"
+version: "1.0.0"
+
+agents:
+  - id: file_reader
+    role: "File Reader Agent"
+    goal: "Read files using file system MCP"
+    backstory: "Expert at reading and analyzing files through MCP"
+    tools: ["file_system"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: read_test_file
+      agent: file_reader
+      action: "read_existing_file"
+      inputs:
+        required: []
+        optional: []
+      outputs:
+        produced: ["file_content"]
+        
+    - id: analyze_content
+      agent: file_reader
+      action: "analyze_file_content"
+      inputs:
+        required: ["file_content"]
+        optional: []
+      outputs:
+        produced: ["analysis_result"]

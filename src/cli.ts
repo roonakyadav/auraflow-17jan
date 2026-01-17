@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
 import * as yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import * as fs from 'fs';
@@ -10,6 +11,7 @@ import chalk from 'chalk';
 import { Agent } from './models/Agent';
 import { Workflow } from './models/Workflow';
 import { WorkflowVisualization } from './visualization/WorkflowVisualization';
+import { ToolRegistry } from './tools/ToolRegistry';
 
 // Type definition for API keys configuration
 interface ApiKeyConfig {
@@ -46,6 +48,12 @@ interface YamlWorkflow {
     role: string;
     goal: string;
     tools?: string[];
+    subAgents?: {
+      id: string;
+      role: string;
+      goal: string;
+      tools?: string[];
+    }[];
   }[];
   workflow: {
     type: 'sequential' | 'parallel' | 'parallel_then' | 'conditional';
@@ -130,22 +138,39 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
     errors.push('Workflow must have a non-empty agents array');
   } else {
     const agentIds = new Set<string>();
-    for (const agent of rootYamlData.agents) {
+    
+    // Helper function to validate agent structure
+    const validateAgent = (agent: any, prefix: string) => {
       if (typeof agent.id !== 'string' || !agent.id.trim()) {
-        errors.push('Each agent must have a valid id');
+        errors.push(`${prefix} must have a valid id`);
       } else if (agentIds.has(agent.id)) {
-        errors.push(`Agent id '${agent.id}' is not unique`);
+        errors.push(`${prefix} id '${agent.id}' is not unique`);
       } else {
         agentIds.add(agent.id);
       }
 
       if (typeof agent.role !== 'string' || !agent.role.trim()) {
-        errors.push(`Agent '${agent.id || 'unknown'}' must have a valid role`);
+        errors.push(`${prefix} must have a valid role`);
       }
 
       if (typeof agent.goal !== 'string' || !agent.goal.trim()) {
-        errors.push(`Agent '${agent.id || 'unknown'}' must have a valid goal`);
+        errors.push(`${prefix} must have a valid goal`);
       }
+      
+      // Validate sub-agents if they exist
+      if (agent.subAgents) {
+        if (!Array.isArray(agent.subAgents)) {
+          errors.push(`${prefix} subAgents must be an array`);
+        } else {
+          agent.subAgents.forEach((subAgent: any, index: number) => {
+            validateAgent(subAgent, `${prefix}.subAgents[${index}]`);
+          });
+        }
+      }
+    };
+    
+    for (const agent of rootYamlData.agents) {
+      validateAgent(agent, `Agent '${agent.id || 'unknown'}'`);
     }
   }
 
@@ -396,10 +421,25 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       process.exit(1);
     }
 
+    // Create tool registry
+    const toolRegistry = new ToolRegistry();
+    
     // Create Agent instances
-    const agents = yamlData.agents.map(agentData => 
-      new Agent(agentData.id, agentData.role, agentData.goal, agentData.tools || [])
-    );
+    const agents = yamlData.agents.map(agentData => {
+      // Create sub-agents if they exist
+      const subAgents = agentData.subAgents ? agentData.subAgents.map(subAgentData => 
+        new Agent(subAgentData.id, subAgentData.role, subAgentData.goal, subAgentData.tools || [], [], toolRegistry)
+      ) : [];
+      
+      return new Agent(
+        agentData.id, 
+        agentData.role, 
+        agentData.goal, 
+        agentData.tools || [],
+        subAgents,
+        toolRegistry
+      );
+    });
 
     // Normalize workflow type
     const rawType = yamlData.workflow.type;
@@ -523,11 +563,38 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         type: 'boolean',
         description: chalk.dim('Parse and validate config, but do not execute agents'),
         default: false
+      })
+      .option('enable-web-search', {
+        type: 'boolean',
+        description: chalk.dim('Enable web search without prompting (for testing)'),
+        default: false
       });
   }, async (argv: any) => {
     console.log(`Loading workflow from file: ${argv.file}`);
     
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
+    
+    // Check if any agent uses web_search tool
+    const hasWebSearch = agents.some(agent => agent.tools.includes('web_search'));
+    
+    // Interactive prompt for web search
+    let enableWebSearch = argv.enableWebSearch || false;
+    if (hasWebSearch && !argv.dryRun && !argv.enableWebSearch) {
+      const readline = require('readline-sync');
+      console.log('\n🔍 WEB SEARCH DETECTED');
+      console.log('This workflow includes agents that can use web search.');
+      const answer = readline.question('Do you want to enable web search for this execution? (y/N): ');
+      enableWebSearch = answer.toLowerCase().startsWith('y');
+      
+      if (enableWebSearch) {
+        console.log(chalk.green('✓ Web search enabled for this execution'));
+      } else {
+        console.log(chalk.yellow('⚠ Web search disabled - agents will work with available context only'));
+      }
+    } else if (argv.enableWebSearch) {
+      console.log(chalk.blue('🔧 WEB SEARCH FORCED ENABLED (test mode)'));
+      enableWebSearch = true;
+    }
     
     // Print structured summary
     console.log('\n>>> WORKFLOW INFO <<<');

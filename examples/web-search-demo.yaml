@@ -1,0 +1,49 @@
+# Demo: Web Search functionality
+# Demonstrates agents using web search to gather current information
+
+id: web-search-demo
+
+agents:
+  - id: researcher
+    role: "Research Assistant"
+    goal: "Find current information about the latest technology trends"
+    tools: ["web_search"]
+
+  - id: analyst
+    role: "Data Analyst"
+    goal: "Analyze the research findings and identify key insights"
+    tools: []
+
+  - id: reporter
+    role: "News Reporter"
+    goal: "Create a concise report summarizing the findings"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: research_phase
+      agent: researcher
+      action: "research_latest_trends"
+      inputs:
+        required: []
+        optional: ["topic"]
+      outputs:
+        produced: ["research_findings"]
+        
+    - id: analysis_phase
+      agent: analyst
+      action: "analyze_findings"
+      inputs:
+        required: ["research_findings"]
+      outputs:
+        produced: ["key_insights"]
+        
+    - id: reporting_phase
+      agent: reporter
+      action: "create_report"
+      inputs:
+        required: ["key_insights"]
+      outputs:
+        produced: ["final_report"]

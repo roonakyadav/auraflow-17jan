@@ -1,0 +1,54 @@
+id: file-system-mcp-demo
+name: "File System MCP Demonstration"
+description: "Demonstrates file system operations through MCP integration"
+version: "1.0.0"
+
+agents:
+  - id: file_explorer
+    role: "File System Explorer"
+    goal: "Explore and demonstrate file system operations"
+    backstory: "Expert at navigating file systems and managing files"
+    tools: ["file_system"]
+
+  - id: file_creator
+    role: "File Creator"
+    goal: "Create and modify files to demonstrate write operations"
+    backstory: "Specialist in file creation and content generation"
+    tools: ["file_system"]
+
+  - id: file_analyzer
+    role: "File Content Analyzer"
+    goal: "Analyze file contents and provide insights"
+    backstory: "Skilled at reading and interpreting file contents"
+    tools: ["file_system"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: explore_directories
+      agent: file_explorer
+      action: "explore_structure"
+      inputs:
+        required: []
+        optional: []
+      outputs:
+        produced: ["directory_listing"]
+        
+    - id: create_analysis_file
+      agent: file_creator
+      action: "create_analysis"
+      inputs:
+        required: ["directory_listing"]
+        optional: []
+      outputs:
+        produced: ["analysis_file"]
+      
+    - id: analyze_created_content
+      agent: file_analyzer
+      action: "analyze_content"
+      inputs:
+        required: ["analysis_file"]
+        optional: []
+      outputs:
+        produced: ["final_analysis"]

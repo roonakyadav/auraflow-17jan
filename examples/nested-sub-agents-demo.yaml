@@ -1,0 +1,55 @@
+# Demo: Nested Sub-agents functionality
+# Demonstrates parent agent delegating to sub-agents that may also have sub-agents
+
+id: nested-sub-agents-demo
+
+agents:
+  - id: chief_architect
+    role: "Chief Architect"
+    goal: "Design the overall system architecture and coordinate with specialized teams"
+    tools: ["system_design", "architectural_review"]
+    subAgents:
+      - id: frontend_lead
+        role: "Frontend Lead"
+        goal: "Lead the frontend development team"
+        tools: ["ui_ux_design", "frontend_development"]
+        subAgents:  # Frontend lead has junior developers as sub-agents
+          - id: junior_frontend_dev
+            role: "Junior Frontend Developer"
+            goal: "Implement specific frontend components"
+            tools: ["react", "css", "javascript"]
+      - id: backend_lead
+        role: "Backend Lead"
+        goal: "Lead the backend development team"
+        tools: ["api_design", "database_management"]
+        subAgents:  # Backend lead has junior developers as sub-agents
+          - id: junior_backend_dev
+            role: "Junior Backend Developer"
+            goal: "Implement specific backend services"
+            tools: ["nodejs", "postgresql", "redis"]
+
+  - id: product_owner
+    role: "Product Owner"
+    goal: "Review the architectural decisions and ensure alignment with product vision"
+    tools: ["product_strategy", "requirement_validation"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: architecture_design
+      agent: chief_architect
+      action: "design_system_architecture"
+      inputs:
+        required: []
+        optional: ["product_requirements"]
+      outputs:
+        produced: ["architecture_document"]
+        
+    - id: product_review
+      agent: product_owner
+      action: "review_architecture"
+      inputs:
+        required: ["architecture_document"]
+      outputs:
+        produced: ["review_feedback"]

@@ -1,20 +1,20 @@
 {
-  "default": "gemini",
+  "default": "groq",
   "keys": {
     "groq": {
       "provider": "groq",
       "model": "llama-3.1-8b-instant",
-      "apiKey": "YOUR_GROQ_API_KEY"
+      "apiKey": "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"
     },
     "gemini": {
-      "provider": "google",
-      "model": "gemini-pro",
-      "apiKey": "YOUR_GEMINI_API_KEY"
+      "provider": "groq",
+      "model": "llama-3.1-8b-instant",
+      "apiKey": "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"
     },
     "hugging-face": {
-      "provider": "huggingface",
-      "model": "mistral-7b",
-      "apiKey": "YOUR_HUGGINGFACE_API_KEY"
+      "provider": "groq",
+      "model": "llama-3.1-8b-instant",
+      "apiKey": "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"
     }
   }
 }

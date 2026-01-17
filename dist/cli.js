@@ -37,6 +37,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
 const yargs = __importStar(require("yargs"));
 const helpers_1 = require("yargs/helpers");
 const fs = __importStar(require("fs"));
@@ -45,6 +46,7 @@ const chalk_1 = __importDefault(require("chalk"));
 const Agent_1 = require("./models/Agent");
 const Workflow_1 = require("./models/Workflow");
 const WorkflowVisualization_1 = require("./visualization/WorkflowVisualization");
+const ToolRegistry_1 = require("./tools/ToolRegistry");
 // Function to display the AURAFLOW banner
 function displayBanner() {
     console.log(chalk_1.default.blue('  █████╗ ██╗      ██████╗  █████╗ ███╗   ██╗ █████╗ ██╗     ███████╗███████╗'));
@@ -66,22 +68,37 @@ function validateWorkflow(rootYamlData) {
     }
     else {
         const agentIds = new Set();
-        for (const agent of rootYamlData.agents) {
+        // Helper function to validate agent structure
+        const validateAgent = (agent, prefix) => {
             if (typeof agent.id !== 'string' || !agent.id.trim()) {
-                errors.push('Each agent must have a valid id');
+                errors.push(`${prefix} must have a valid id`);
             }
             else if (agentIds.has(agent.id)) {
-                errors.push(`Agent id '${agent.id}' is not unique`);
+                errors.push(`${prefix} id '${agent.id}' is not unique`);
             }
             else {
                 agentIds.add(agent.id);
             }
             if (typeof agent.role !== 'string' || !agent.role.trim()) {
-                errors.push(`Agent '${agent.id || 'unknown'}' must have a valid role`);
+                errors.push(`${prefix} must have a valid role`);
             }
             if (typeof agent.goal !== 'string' || !agent.goal.trim()) {
-                errors.push(`Agent '${agent.id || 'unknown'}' must have a valid goal`);
+                errors.push(`${prefix} must have a valid goal`);
             }
+            // Validate sub-agents if they exist
+            if (agent.subAgents) {
+                if (!Array.isArray(agent.subAgents)) {
+                    errors.push(`${prefix} subAgents must be an array`);
+                }
+                else {
+                    agent.subAgents.forEach((subAgent, index) => {
+                        validateAgent(subAgent, `${prefix}.subAgents[${index}]`);
+                    });
+                }
+            }
+        };
+        for (const agent of rootYamlData.agents) {
+            validateAgent(agent, `Agent '${agent.id || 'unknown'}'`);
         }
     }
     // Validate rootYamlData object exists
@@ -319,8 +336,14 @@ async function loadWorkflowFromFile(filePath) {
             }
             process.exit(1);
         }
+        // Create tool registry
+        const toolRegistry = new ToolRegistry_1.ToolRegistry();
         // Create Agent instances
-        const agents = yamlData.agents.map(agentData => new Agent_1.Agent(agentData.id, agentData.role, agentData.goal, agentData.tools || []));
+        const agents = yamlData.agents.map(agentData => {
+            // Create sub-agents if they exist
+            const subAgents = agentData.subAgents ? agentData.subAgents.map(subAgentData => new Agent_1.Agent(subAgentData.id, subAgentData.role, subAgentData.goal, subAgentData.tools || [], [], toolRegistry)) : [];
+            return new Agent_1.Agent(agentData.id, agentData.role, agentData.goal, agentData.tools || [], subAgents, toolRegistry);
+        });
         // Normalize workflow type
         const rawType = yamlData.workflow.type;
         const normalizedType = String(rawType).trim().toLowerCase();
@@ -429,10 +452,36 @@ yargs.default((0, helpers_1.hideBin)(process.argv))
         type: 'boolean',
         description: chalk_1.default.dim('Parse and validate config, but do not execute agents'),
         default: false
+    })
+        .option('enable-web-search', {
+        type: 'boolean',
+        description: chalk_1.default.dim('Enable web search without prompting (for testing)'),
+        default: false
     });
 }, async (argv) => {
     console.log(`Loading workflow from file: ${argv.file}`);
     const { agents, workflow } = await loadWorkflowFromFile(argv.file);
+    // Check if any agent uses web_search tool
+    const hasWebSearch = agents.some(agent => agent.tools.includes('web_search'));
+    // Interactive prompt for web search
+    let enableWebSearch = argv.enableWebSearch || false;
+    if (hasWebSearch && !argv.dryRun && !argv.enableWebSearch) {
+        const readline = require('readline-sync');
+        console.log('\n🔍 WEB SEARCH DETECTED');
+        console.log('This workflow includes agents that can use web search.');
+        const answer = readline.question('Do you want to enable web search for this execution? (y/N): ');
+        enableWebSearch = answer.toLowerCase().startsWith('y');
+        if (enableWebSearch) {
+            console.log(chalk_1.default.green('✓ Web search enabled for this execution'));
+        }
+        else {
+            console.log(chalk_1.default.yellow('⚠ Web search disabled - agents will work with available context only'));
+        }
+    }
+    else if (argv.enableWebSearch) {
+        console.log(chalk_1.default.blue('🔧 WEB SEARCH FORCED ENABLED (test mode)'));
+        enableWebSearch = true;
+    }
     // Print structured summary
     console.log('\n>>> WORKFLOW INFO <<<');
     console.log('ID:', workflow.id);

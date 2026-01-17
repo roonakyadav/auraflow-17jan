@@ -1,0 +1,33 @@
+id: mcp-file-creation-demo
+name: "MCP File Creation Demonstration"
+description: "Demonstrate file system MCP creating actual files"
+version: "1.0.0"
+
+agents:
+  - id: file_creator
+    role: "File Creator Agent"
+    goal: "Create actual files using file system MCP"
+    backstory: "Expert at creating and managing files through MCP"
+    tools: ["file_system"]
+
+workflow:
+  type: sequential
+  stopOnError: true
+  steps:
+    - id: create_project_analysis
+      agent: file_creator
+      action: "create_analysis_file"
+      inputs:
+        required: []
+        optional: []
+      outputs:
+        produced: ["analysis_file"]
+        
+    - id: verify_creation
+      agent: file_creator
+      action: "verify_file_exists"
+      inputs:
+        required: ["analysis_file"]
+        optional: []
+      outputs:
+        produced: ["verification_result"]

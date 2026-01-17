@@ -28,6 +28,20 @@ export declare class Executor {
      */
     private validateInputs;
     /**
+     * Logs the context being passed to an agent
+     * @param agent - The agent that will receive the context
+     * @param context - The current context being passed
+     * @param step - The step configuration
+     */
+    private logContextPassing;
+    /**
+     * Logs the context update after an agent executes
+     * @param agent - The agent that just executed
+     * @param output - The output from the agent
+     * @param outputKeys - Keys under which the output is stored
+     */
+    private logContextUpdate;
+    /**
      * Executes a conditional workflow based on agent output
      * @param workflow - The conditional workflow to execute
      * @param agents - Array of agents available for the workflow
