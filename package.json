@@ -27,6 +27,7 @@
     "cli-table3": "^0.6.5",
     "groq-sdk": "^0.37.0",
     "js-yaml": "^4.1.1",
+    "readline-sync": "^1.4.10",
     "typescript": "^5.3.3",
     "yargs": "^17.7.2"
   },

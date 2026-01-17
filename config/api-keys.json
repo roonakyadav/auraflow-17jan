@@ -1,0 +1,20 @@
+{
+  "default": "gemini",
+  "keys": {
+    "groq": {
+      "provider": "groq",
+      "model": "llama-3.1-8b-instant",
+      "apiKey": "YOUR_GROQ_API_KEY"
+    },
+    "gemini": {
+      "provider": "google",
+      "model": "gemini-pro",
+      "apiKey": "YOUR_GEMINI_API_KEY"
+    },
+    "hugging-face": {
+      "provider": "huggingface",
+      "model": "mistral-7b",
+      "apiKey": "YOUR_HUGGINGFACE_API_KEY"
+    }
+  }
+}

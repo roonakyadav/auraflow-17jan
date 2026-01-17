@@ -9,20 +9,18 @@ let isInitialized = false;
  */
 export class LLMClient {
   private client: Groq;
-  private readonly DEFAULT_MODEL = 'llama-3.1-8b-instant';
+  private readonly DEFAULT_MODEL = process.env.CURRENT_AI_MODEL || 'llama-3.1-8b-instant';
 
   constructor() {
-    // Hardcoded API key to prevent environment variable issues
-    const GROQ_API_KEY = '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';
-    
-    // Alternative: Check environment variable first, fallback to hardcoded
-    // const GROQ_API_KEY = process.env.GROQ_API_KEY || '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';
+    // Check environment variable first, fallback to hardcoded
+    const GROQ_API_KEY = process.env.GROQ_API_KEY || 'YOUR_GROQ_API_KEY';
     
     // Only log once when the first client is initialized
     if (!isInitialized) {
       console.log(chalk.green('INITIALIZATION'));
       console.log(chalk.green('-------------'));
       console.log(chalk.green('✓ Groq client initialized'));
+      console.log(chalk.green(`✓ Using model: ${this.DEFAULT_MODEL}`));
       isInitialized = true;
     }
     

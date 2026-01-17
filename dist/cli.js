@@ -45,9 +45,19 @@ const chalk_1 = __importDefault(require("chalk"));
 const Agent_1 = require("./models/Agent");
 const Workflow_1 = require("./models/Workflow");
 const WorkflowVisualization_1 = require("./visualization/WorkflowVisualization");
-// Simple header - following user preference for UI simplicity
-console.log(chalk_1.default.bold('AuraFlow - Declarative Multi-Agent Orchestration'));
-console.log('Version 0.1.0\n');
+// Function to display the AURAFLOW banner
+function displayBanner() {
+    console.log(chalk_1.default.blue('  █████╗ ██╗      ██████╗  █████╗ ███╗   ██╗ █████╗ ██╗     ███████╗███████╗'));
+    console.log(chalk_1.default.blue(' ██╔══██╗██║     ██╔════╝ ██╔══██╗████╗  ██║██╔══██╗██║     ██╔════╝██╔════╝'));
+    console.log(chalk_1.default.blue(' ███████║██║     ██║  ███╗███████║██╔██╗ ██║███████║██║     █████╗  ███████╗'));
+    console.log(chalk_1.default.blue(' ██╔══██║██║     ██║   ██║██╔══██║██║╚██╗██║██╔══██║██║     ██╔══╝  ╚════██║'));
+    console.log(chalk_1.default.blue(' ██║  ██║███████╗╚██████╔╝██║  ██║██║ ╚████║██║  ██║███████╗███████╗███████║'));
+    console.log(chalk_1.default.blue(' ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝'));
+    console.log();
+}
+// Show banner before processing commands
+displayBanner();
+yargs.default((0, helpers_1.hideBin)(process.argv));
 function validateWorkflow(rootYamlData) {
     const errors = [];
     // Validate agents
@@ -396,8 +406,14 @@ async function loadWorkflowFromFile(filePath) {
     }
 }
 yargs.default((0, helpers_1.hideBin)(process.argv))
-    .usage(chalk_1.default.bold('USAGE:') + '\n  $0 ' + chalk_1.default.cyan('<command> [options]'))
-    .command('run <file>', chalk_1.default.cyan('run') + ' ' + chalk_1.default.dim('Run a workflow from a YAML file'), (yargs) => {
+    .usage(chalk_1.default.bold.blue('┌─────────────────────────────────────────────────────────┐\n') +
+    chalk_1.default.bold.blue('│                    ') + chalk_1.default.bold.bgBlue.white('  AURAFLOW  ') + chalk_1.default.bold.blue('                         │\n') +
+    chalk_1.default.bold.blue('├─────────────────────────────────────────────────────────┤\n') +
+    chalk_1.default.bold.blue('│              ') + chalk_1.default.reset('Declarative Multi-Agent Orchestration  ') + chalk_1.default.bold.blue('    │\n') +
+    chalk_1.default.bold.blue('└─────────────────────────────────────────────────────────┘\n\n') +
+    chalk_1.default.bold('USAGE:') + '\n  $0 ' + chalk_1.default.cyan('<command> [options]') + '\n\n' +
+    chalk_1.default.bold('DESCRIPTION:') + '\n  ' + chalk_1.default.reset('AuraFlow is a declarative multi-agent orchestration platform that allows you to define and run complex AI workflows using YAML configuration files.') + '\n\n')
+    .command('run <file>', chalk_1.default.cyan('run') + ' ' + chalk_1.default.dim('Execute a multi-agent workflow defined in a YAML file'), (yargs) => {
     return yargs
         .example([
         [chalk_1.default.italic.dim('$0 run examples/sample-workflow.yaml'), chalk_1.default.dim('Run a workflow from a YAML file')],
@@ -551,7 +567,7 @@ yargs.default((0, helpers_1.hideBin)(process.argv))
     console.log('\n>>> WORKFLOW COMPLETED SUCCESSFULLY <<<');
     console.log('Execution finished. Results shown above.');
 })
-    .command('test-agent <agent-id> <file>', chalk_1.default.cyan('test-agent') + ' ' + chalk_1.default.dim('Test a single agent from a YAML file'), (yargs) => {
+    .command('test-agent <agent-id> <file>', chalk_1.default.cyan('test-agent') + ' ' + chalk_1.default.dim('Test a specific agent from a workflow YAML file'), (yargs) => {
     return yargs
         .example([
         [chalk_1.default.italic.dim('$0 test-agent researcher examples/sample-workflow.yaml'), chalk_1.default.dim('Test the researcher agent')]
@@ -598,7 +614,223 @@ yargs.default((0, helpers_1.hideBin)(process.argv))
         process.exit(1);
     }
 })
-    .epilogue('\n' + chalk_1.default.gray('For more information, visit: ') + chalk_1.default.italic('https://github.com/your-repo/auraflow'))
+    .command('configure', chalk_1.default.cyan('configure') + ' ' + chalk_1.default.dim('Add or update AI model and API key configuration'), (yargs) => {
+    return yargs
+        .example([
+        [chalk_1.default.italic.dim('$0 configure'), chalk_1.default.dim('Change AI model and API key')]
+    ])
+        .option('model', {
+        alias: 'm',
+        type: 'string',
+        description: chalk_1.default.dim('AI model name to use'),
+        demandOption: false
+    })
+        .option('api-key', {
+        alias: 'k',
+        type: 'string',
+        description: chalk_1.default.dim('API key for the AI service'),
+        demandOption: false
+    })
+        .option('name', {
+        alias: 'n',
+        type: 'string',
+        description: chalk_1.default.dim('Name for this API key configuration'),
+        demandOption: false
+    });
+}, async (argv) => {
+    console.log(chalk_1.default.bold('AI Model Configuration'));
+    console.log('========================');
+    let modelName = argv.model;
+    let apiKey = argv.apiKey;
+    let keyName = argv.name || 'unnamed';
+    // If not provided as arguments, prompt for input
+    if (!modelName) {
+        const readline = require('readline-sync');
+        modelName = readline.question('Enter AI model name (e.g., llama-3.1-8b-instant): ');
+    }
+    if (!apiKey) {
+        const readline = require('readline-sync');
+        apiKey = readline.question('Enter API key: ', { hideEchoBack: true });
+    }
+    if (!argv.name) {
+        const readline = require('readline-sync');
+        keyName = readline.question('Enter a name for this key (e.g., groq-main, gemini-test): ');
+    }
+    // Load existing API keys config
+    let apiKeysConfig = { default: 'default-key', keys: {} };
+    try {
+        const configContent = fs.readFileSync('config/api-keys.json', 'utf8');
+        apiKeysConfig = JSON.parse(configContent);
+    }
+    catch (err) {
+        // If config file doesn't exist, use default
+        console.log(chalk_1.default.yellow('Creating new API keys configuration...'));
+    }
+    // Add/update the key in our config
+    apiKeysConfig.keys[keyName] = {
+        provider: argv.provider || 'groq',
+        model: modelName,
+        apiKey: apiKey
+    };
+    apiKeysConfig.default = keyName;
+    // Save the updated config
+    fs.writeFileSync('config/api-keys.json', JSON.stringify(apiKeysConfig, null, 2));
+    // Also update the .env file for immediate use
+    try {
+        let envContent = '';
+        try {
+            envContent = fs.readFileSync('.env', 'utf8');
+        }
+        catch (err) {
+            // If .env file doesn't exist, create an empty content
+            envContent = '';
+        }
+        // Replace or add the GROQ_API_KEY line
+        const apiKeyRegex = /^GROQ_API_KEY=.*/gm;
+        if (apiKeyRegex.test(envContent)) {
+            envContent = envContent.replace(apiKeyRegex, `GROQ_API_KEY=${apiKey}`);
+        }
+        else {
+            envContent += `\nGROQ_API_KEY=${apiKey}`;
+        }
+        // Add model as a comment
+        const modelComment = `# Current AI model: ${modelName}`;
+        const modelCommentRegex = /^# Current AI model:.*/gm;
+        if (modelCommentRegex.test(envContent)) {
+            envContent = envContent.replace(modelCommentRegex, modelComment);
+        }
+        else {
+            envContent = modelComment + '\n' + envContent;
+        }
+        // Also add as environment variable
+        const modelEnvRegex = /^CURRENT_AI_MODEL=.*/gm;
+        if (modelEnvRegex.test(envContent)) {
+            envContent = envContent.replace(modelEnvRegex, `CURRENT_AI_MODEL=${modelName}`);
+        }
+        else {
+            envContent = `CURRENT_AI_MODEL=${modelName}\n` + envContent;
+        }
+        fs.writeFileSync('.env', envContent);
+        console.log(chalk_1.default.green('\n✓ Configuration updated successfully!'));
+        console.log(chalk_1.default.green(`Model: ${modelName}`));
+        console.log(chalk_1.default.green(`API Key has been saved with name: ${keyName}`));
+        console.log(chalk_1.default.green(`API Key has been updated in .env file`));
+        console.log(chalk_1.default.yellow('\nNote: You need to restart the application for changes to take effect.'));
+    }
+    catch (error) {
+        console.error(chalk_1.default.red('Error updating configuration:'), error.message);
+        process.exit(1);
+    }
+})
+    .command('switch', chalk_1.default.cyan('switch') + ' ' + chalk_1.default.dim('Switch between saved AI model configurations'), (yargs) => {
+    return yargs
+        .example([
+        [chalk_1.default.italic.dim('$0 switch'), chalk_1.default.dim('List and select from saved API keys')],
+        [chalk_1.default.italic.dim('$0 switch my-gemini-key'), chalk_1.default.dim('Switch to a specific key by name')]
+    ])
+        .positional('keyName', {
+        describe: chalk_1.default.dim('Name of the API key to switch to (optional)'),
+        type: 'string',
+        demandOption: false
+    });
+}, async (argv) => {
+    console.log(chalk_1.default.bold('API Key Switcher'));
+    console.log('==================');
+    // Load API keys config
+    let apiKeysConfig = { default: '', keys: {} };
+    try {
+        const configContent = fs.readFileSync('config/api-keys.json', 'utf8');
+        apiKeysConfig = JSON.parse(configContent);
+    }
+    catch (err) {
+        console.error(chalk_1.default.red('No API keys configuration found. Please configure at least one key first using:'), chalk_1.default.cyan('auraflow configure'));
+        process.exit(1);
+    }
+    const keyNames = Object.keys(apiKeysConfig.keys);
+    if (keyNames.length === 0) {
+        console.log(chalk_1.default.yellow('No API keys saved yet. Use configure command to add keys.'));
+        return;
+    }
+    let selectedKeyName = argv.keyName;
+    if (!selectedKeyName) {
+        // Show list and prompt for selection
+        console.log(chalk_1.default.bold.blue('\n📋 Available API Keys:'));
+        console.log(chalk_1.default.dim('────────────────────────────────'));
+        keyNames.forEach((name, index) => {
+            const keyInfo = apiKeysConfig.keys[name];
+            const indicator = name === apiKeysConfig.default ? chalk_1.default.green(' [ACTIVE]') : '';
+            console.log(`${index + 1}. ${chalk_1.default.cyan(name)} ${indicator}`);
+            console.log(`   Model: ${keyInfo.model}`);
+            console.log(`   Provider: ${keyInfo.provider}\n`);
+        });
+        const readline = require('readline-sync');
+        const selection = readline.question(chalk_1.default.bold('Enter the name of the key you want to use: '));
+        selectedKeyName = selection;
+    }
+    // Validate the selected key exists
+    if (!apiKeysConfig.keys[selectedKeyName]) {
+        console.error(chalk_1.default.red(`API key '${selectedKeyName}' not found.`));
+        console.log('Available keys:', keyNames.join(', '));
+        process.exit(1);
+    }
+    // Update the .env file with the selected key
+    const selectedKey = apiKeysConfig.keys[selectedKeyName];
+    try {
+        let envContent = '';
+        try {
+            envContent = fs.readFileSync('.env', 'utf8');
+        }
+        catch (err) {
+            // If .env file doesn't exist, create an empty content
+            envContent = '';
+        }
+        // Replace or add the GROQ_API_KEY line
+        const apiKeyRegex = /^GROQ_API_KEY=.*/gm;
+        if (apiKeyRegex.test(envContent)) {
+            envContent = envContent.replace(apiKeyRegex, `GROQ_API_KEY=${selectedKey.apiKey}`);
+        }
+        else {
+            envContent += `\nGROQ_API_KEY=${selectedKey.apiKey}`;
+        }
+        // Add model as a comment
+        const modelComment = `# Current AI model: ${selectedKey.model}`;
+        const modelCommentRegex = /^# Current AI model:.*/gm;
+        if (modelCommentRegex.test(envContent)) {
+            envContent = envContent.replace(modelCommentRegex, modelComment);
+        }
+        else {
+            envContent = modelComment + '\n' + envContent;
+        }
+        // Also add as environment variable
+        const modelEnvRegex = /^CURRENT_AI_MODEL=.*/gm;
+        if (modelEnvRegex.test(envContent)) {
+            envContent = envContent.replace(modelEnvRegex, `CURRENT_AI_MODEL=${selectedKey.model}`);
+        }
+        else {
+            envContent = `CURRENT_AI_MODEL=${selectedKey.model}\n` + envContent;
+        }
+        fs.writeFileSync('.env', envContent);
+        // Update the default key in config
+        apiKeysConfig.default = selectedKeyName;
+        fs.writeFileSync('config/api-keys.json', JSON.stringify(apiKeysConfig, null, 2));
+        console.log(chalk_1.default.green('\n✓ Successfully switched to API key:'), chalk_1.default.cyan(selectedKeyName));
+        console.log(chalk_1.default.green(`Model: ${selectedKey.model}`));
+        console.log(chalk_1.default.green(`Provider: ${selectedKey.provider}`));
+        console.log(chalk_1.default.yellow('\nNote: You need to restart the application for changes to take effect.'));
+    }
+    catch (error) {
+        console.error(chalk_1.default.red('Error switching API key:'), error.message);
+        process.exit(1);
+    }
+})
+    .epilogue('\n' + chalk_1.default.bold.blue('💡 QUICK START GUIDE') + '\n' +
+    chalk_1.default.dim('┌─────────────────────────────────────────────────────────────┐\n') +
+    chalk_1.default.dim('│ ') + chalk_1.default.green('1. ') + chalk_1.default.reset('Configure your AI model: ') + chalk_1.default.cyan('auraflow configure') + chalk_1.default.dim('                    │\n') +
+    chalk_1.default.dim('│ ') + chalk_1.default.green('2. ') + chalk_1.default.reset('Save multiple configs: ') + chalk_1.default.cyan('auraflow configure -n my-gemini -m gemini-pro') + chalk_1.default.dim(' │\n') +
+    chalk_1.default.dim('│ ') + chalk_1.default.green('3. ') + chalk_1.default.reset('Switch between configs: ') + chalk_1.default.cyan('auraflow switch') + chalk_1.default.dim('                          │\n') +
+    chalk_1.default.dim('│ ') + chalk_1.default.green('4. ') + chalk_1.default.reset('Run workflows: ') + chalk_1.default.cyan('auraflow run examples/demo-workflow.yaml') + chalk_1.default.dim('       │\n') +
+    chalk_1.default.dim('└─────────────────────────────────────────────────────────────┘\n\n') +
+    chalk_1.default.gray('For more information, visit: ') + chalk_1.default.italic('https://github.com/your-repo/auraflow'))
     .wrap(Math.min(100, yargs.terminalWidth()))
     .help()
     .alias('h', 'help')

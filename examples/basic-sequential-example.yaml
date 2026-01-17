@@ -22,14 +22,16 @@ workflow:
       agent: researcher
       action: "research_topic"
       inputs:
-        topic: "benefits of artificial intelligence"
+        required: []
+        optional: ["topic"]
       outputs:
-        - research_findings
+        produced: ["research_findings"]
         
     - id: writing_step
       agent: writer
       action: "write_summary"
       inputs:
-        research_data: "{{ research_findings }}"
+        required: ["research_data"]
+        optional: []
       outputs:
-        - final_summary
+        produced: ["final_summary"]

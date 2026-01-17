@@ -1,4 +1,3 @@
-# Corrected version of the complex workflow
 id: complex-workflow
 
 agents:
@@ -37,7 +36,7 @@ workflow:
         optional: ["api_endpoints", "data_sources"]
       outputs:
         produced: ["raw_data"]
-
+        
     - id: transform_data
       agent: data_transformer
       action: "normalize_and_enrich"
@@ -46,6 +45,40 @@ workflow:
         optional: []
       outputs:
         produced: ["processed_data"]
+        
+    - id: analyze_sentiment
+      agent: sentiment_analyzer
+      action: "analyze_text_sentiment"
+      inputs:
+        required: ["processed_data"]
+        optional: []
+      outputs:
+        produced: ["sentiment_analysis"]
+        
+    - id: detect_trends
+      agent: trend_detector
+      action: "identify_emerging_patterns"
+      inputs:
+        required: ["processed_data"]
+        optional: []
+      outputs:
+        produced: ["trend_findings"]
+        
+    - id: aggregate_report
+      agent: report_aggregator
+      action: "combine_findings"
+      inputs:
+        required: ["sentiment_analysis", "trend_findings"]
+        optional: []
+      outputs:
+        produced: ["preliminary_report"]
+        
+    - id: check_quality
+      agent: quality_checker
+      action: "validate_accuracy"
+      inputs:
+        required: ["preliminary_report"]
+        optional: []
+      outputs:
+        produced: ["final_report"]
 
-# Note: To achieve parallel processing, we'd need to use a parallel workflow type instead
-# The original mixed approach isn't supported in the current schema
