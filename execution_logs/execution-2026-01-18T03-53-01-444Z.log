@@ -1,0 +1,6 @@
+[2026-01-18T03:53:01.444Z] [INFO] [EXECUTOR] Starting execution of workflow: parallel-execution-test | Metadata: {"workflowId":"parallel-execution-test","workflowType":"parallel","agentCount":3,"stepCount":0,"branchCount":2}
+[2026-01-18T03:53:01.451Z] [INFO] [EXECUTOR] Starting agent: tech_analyst | Metadata: {"agentId":"tech_analyst","agentRole":"Technical Analyst","stepId":"tech_analysis_branch"}
+[2026-01-18T03:53:01.452Z] [INFO] [EXECUTOR] Starting agent: business_analyst | Metadata: {"agentId":"business_analyst","agentRole":"Business Analyst","stepId":"business_analysis_branch"}
+[2026-01-18T03:53:04.104Z] [INFO] [EXECUTOR] Agent business_analyst execution completed | Metadata: {"agentId":"business_analyst","stepId":"business_analysis_branch","success":true,"durationMs":2648,"outputLength":4436}
+[2026-01-18T03:54:03.480Z] [INFO] [EXECUTOR] Agent tech_analyst execution completed | Metadata: {"agentId":"tech_analyst","stepId":"tech_analysis_branch","success":true,"durationMs":62027,"outputLength":3153}
+[2026-01-18T03:54:03.819Z] [INFO] [EXECUTOR] Workflow parallel-execution-test execution completed | Metadata: {"workflowId":"parallel-execution-test","success":true,"durationMs":62370}

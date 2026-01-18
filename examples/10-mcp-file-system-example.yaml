@@ -1,0 +1,71 @@
+id: mcp-file-system-demo
+
+context:
+  project_directory: "./temp_project"
+  files_to_create: ["README.md", "src/main.ts", "package.json"]
+  content_descriptions: ["Project overview", "Main source file", "Package configuration"]
+
+agents:
+  - id: project_planner
+    role: "Project Structure Designer"
+    goal: "Plan the directory structure and file organization for a new TypeScript project"
+    tools: []
+
+  - id: file_creator
+    role: "File System Manager"
+    goal: "Create directories and files as planned by the project planner"
+    tools: ["file_system"]
+
+  - id: content_writer
+    role: "Content Creator"
+    goal: "Write appropriate content to the created files"
+    tools: ["file_system"]
+
+  - id: project_validator
+    role: "Project Validator"
+    goal: "Verify that all files were created correctly and contain appropriate content"
+    tools: ["file_system"]
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: plan_structure
+      agent: project_planner
+      action: "design-project-structure"
+      inputs:
+        required: []
+      outputs:
+        produced: ["directory_plan", "file_list"]
+
+    - id: create_directories
+      agent: file_creator
+      action: "create-project-directories"
+      inputs:
+        required: ["directory_plan"]
+      outputs:
+        produced: ["directories_created"]
+
+    - id: create_files
+      agent: file_creator
+      action: "create-project-files"
+      inputs:
+        required: ["file_list", "directories_created"]
+      outputs:
+        produced: ["files_created"]
+
+    - id: write_content
+      agent: content_writer
+      action: "write-file-content"
+      inputs:
+        required: ["files_created"]
+      outputs:
+        produced: ["content_written"]
+
+    - id: validate_project
+      agent: project_validator
+      action: "validate-project-structure"
+      inputs:
+        required: ["content_written"]
+      outputs:
+        produced: ["validation_results", "final_status"]

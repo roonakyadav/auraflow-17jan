@@ -1,0 +1,60 @@
+id: cybersecurity-risk-assessment
+
+context:
+  organization_type: "Financial services company"
+  assessment_scope: "Cloud infrastructure and customer data protection"
+  compliance_requirements: "PCI DSS, SOC 2, GDPR regulations"
+
+agents:
+  - id: threat_analyst
+    role: "Cybersecurity Threat Analyst"
+    goal: "Identify potential security threats and vulnerabilities in cloud infrastructure"
+    tools: ["web_search"]
+
+  - id: compliance_officer
+    role: "Regulatory Compliance Officer"
+    goal: "Assess regulatory compliance risks and requirements"
+    tools: ["web_search"]
+
+  - id: risk_manager
+    role: "Risk Management Specialist"
+    goal: "Evaluate and prioritize identified risks based on impact and likelihood"
+    tools: []
+
+  - id: mitigation_specialist
+    role: "Security Mitigation Specialist"
+    goal: "Develop specific mitigation strategies for high-priority risks"
+    tools: []
+
+workflow:
+  type: conditional
+  stopOnError: false
+  branches:
+    - condition: "high_threat_level"
+      agent: threat_analyst
+      action: "conduct_detailed_threat_analysis"
+      inputs:
+        required: []
+      outputs:
+        produced: ["threat_assessment", "vulnerability_report"]
+    - condition: "regulatory_non_compliance"
+      agent: compliance_officer
+      action: "assess_compliance_gaps"
+      inputs:
+        required: []
+      outputs:
+        produced: ["compliance_risks", "remediation_requirements"]
+    - default:
+      agent: risk_manager
+      action: "perform_general_risk_assessment"
+      inputs:
+        required: []
+      outputs:
+        produced: ["risk_profile", "priority_ranking"]
+  then:
+    agent: mitigation_specialist
+    action: "develop_risk_mitigation_plan"
+    inputs:
+      required: ["threat_assessment", "risk_profile"]
+    outputs:
+      produced: ["mitigation_strategies", "implementation_timeline"]

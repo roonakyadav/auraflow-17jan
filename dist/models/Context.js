@@ -43,6 +43,13 @@ class Context {
         return [...this.messages]; // Return a copy to prevent external mutation
     }
     /**
+     * Clears all messages from the shared context
+     */
+    clear() {
+        this.messages = [];
+        this.outputs.clear();
+    }
+    /**
      * Adds or updates an output in the shared context
      * @param key - Key to store the output under
      * @param value - Value of the output

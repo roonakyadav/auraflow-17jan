@@ -1,0 +1,36 @@
+id: financial-market-analysis
+
+context:
+  market_sector: "Cryptocurrency and blockchain technology"
+  analysis_period: "Q1 2024 market performance"
+  focus_areas: "Bitcoin dominance, DeFi protocols, institutional adoption"
+
+agents:
+  - id: market_researcher
+    role: "Financial Market Researcher"
+    goal: "Analyze cryptocurrency market trends and performance metrics for Q1 2024"
+    tools: ["web_search"]
+
+  - id: data_analyst
+    role: "Quantitative Data Analyst"
+    goal: "Process market data and identify key performance indicators and trends"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: market_research
+      agent: market_researcher
+      action: "analyze_crypto_market_trends_q1_2024"
+      inputs:
+        required: []
+      outputs:
+        produced: ["market_data", "trend_analysis"]
+    - id: data_processing
+      agent: data_analyst
+      action: "process_and_interpret_market_metrics"
+      inputs:
+        required: ["market_data", "trend_analysis"]
+      outputs:
+        produced: ["performance_insights", "investment_recommendations"]

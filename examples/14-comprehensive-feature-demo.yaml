@@ -1,0 +1,237 @@
+id: comprehensive-multi-agent-demo
+
+context:
+  project_name: "AuraFlow Comprehensive Demo"
+  description: "Demonstrates all features including MCP, persistent memory, logs, and advanced workflows"
+  storage_path: "./demo_artifacts"
+  log_level: "INFO"
+  monitoring_enabled: true
+
+agents:
+  - id: system_architect
+    role: "System Architect"
+    goal: "Design the overall system architecture incorporating all required features"
+    tools: ["web_search"]
+
+  - id: mcp_coordinator
+    role: "MCP Coordinator"
+    goal: "Implement and coordinate Model Context Protocol operations for file system access"
+    tools: ["file_system"]
+
+  - id: memory_manager
+    role: "Persistent Memory Manager"
+    goal: "Handle long-term memory storage and retrieval across sessions"
+    tools: []
+
+  - id: logging_specialist
+    role: "Logging and Monitoring Specialist"
+    goal: "Implement comprehensive logging for execution and network activities"
+    tools: []
+
+  - id: tool_integration_expert
+    role: "Tool Integration Expert"
+    goal: "Integrate various tools and ensure interoperability between models"
+    tools: ["web_search", "file_system"]
+
+  - id: workflow_coordinator
+    role: "Workflow Coordinator"
+    goal: "Orchestrate complex sequential, parallel, and conditional workflows"
+    tools: []
+
+  - id: quality_assurance
+    role: "Quality Assurance Agent"
+    goal: "Validate that all features work correctly and meet requirements"
+    tools: []
+
+  - id: reporting_analyst
+    role: "Reporting Analyst"
+    goal: "Generate comprehensive reports on system performance and feature utilization"
+    tools: []
+
+  - id: sub_agent_coordinator
+    role: "Sub-Agent Coordinator"
+    goal: "Manage and delegate tasks to specialized sub-agents"
+    tools: []
+    subAgents:
+      - id: data_processor
+        role: "Data Processing Specialist"
+        goal: "Process and analyze data inputs efficiently"
+        tools: ["file_system"]
+      
+      - id: api_handler
+        role: "API Handler"
+        goal: "Handle API communications and network requests"
+        tools: ["web_search"]
+      
+      - id: validation_expert
+        role: "Validation Expert"
+        goal: "Validate data and ensure quality standards"
+        tools: []
+
+workflow:
+  type: conditional
+  stopOnError: false
+  steps:
+    - id: design_architecture
+      agent: system_architect
+      action: "design-comprehensive-system-architecture"
+      inputs:
+        required: []
+      outputs:
+        produced: ["architecture_design", "feature_requirements"]
+
+    - id: setup_mcp
+      agent: mcp_coordinator
+      action: "setup-model-context-protocol"
+      inputs:
+        required: ["architecture_design"]
+      outputs:
+        produced: ["mcp_setup_complete", "filesystem_access_configured"]
+
+    - id: initialize_memory
+      agent: memory_manager
+      action: "initialize-persistent-memory"
+      inputs:
+        required: ["architecture_design"]
+      outputs:
+        produced: ["memory_initialized", "storage_configured"]
+
+    - id: configure_logging
+      agent: logging_specialist
+      action: "configure-comprehensive-logging"
+      inputs:
+        required: ["architecture_design"]
+      outputs:
+        produced: ["logging_configured", "monitoring_enabled"]
+
+    - id: integrate_tools
+      agent: tool_integration_expert
+      action: "integrate-all-tools-and-models"
+      inputs:
+        required: ["architecture_design", "mcp_setup_complete"]
+      outputs:
+        produced: ["tools_integrated", "interoperability_achieved"]
+
+  condition:
+    stepId: integrate_tools
+    cases:
+      - condition: "fully_integrated"
+        step:
+          id: execute_main_workflow
+          agent: workflow_coordinator
+          action: "execute-complex-multi-pattern-workflow"
+          inputs:
+            required: ["tools_integrated", "logging_configured", "memory_initialized"]
+          outputs:
+            produced: ["main_workflow_executed", "patterns_validated"]
+
+      - condition: "partially_integrated"
+        step:
+          id: fallback_workflow
+          agent: workflow_coordinator
+          action: "execute-fallback-workflow"
+          inputs:
+            required: ["tools_integrated", "logging_configured"]
+          outputs:
+            produced: ["fallback_executed", "limited_validation"]
+
+    default:
+      id: default_workflow
+      agent: workflow_coordinator
+      action: "execute-default-comprehensive-workflow"
+      inputs:
+        required: ["architecture_design", "mcp_setup_complete", "memory_initialized", "logging_configured"]
+      outputs:
+        produced: ["default_workflow_executed", "basic_validation"]
+
+  then:
+    agent: quality_assurance
+    action: "validate-all-features"
+    inputs:
+      required: ["main_workflow_executed", "patterns_validated", "tools_integrated", "logging_configured"]
+    outputs:
+      produced: ["validation_results", "feature_status"]
+
+  # Additional parallel validation steps
+  branches:
+    - id: validate_mcp
+      agent: mcp_coordinator
+      action: "validate-mcp-functionality"
+      inputs:
+        required: ["mcp_setup_complete"]
+      outputs:
+        produced: ["mcp_validation_results"]
+
+    - id: validate_memory
+      agent: memory_manager
+      action: "validate-persistent-memory"
+      inputs:
+        required: ["memory_initialized"]
+      outputs:
+        produced: ["memory_validation_results"]
+
+    - id: validate_logging
+      agent: logging_specialist
+      action: "validate-logging-system"
+      inputs:
+        required: ["logging_configured"]
+      outputs:
+        produced: ["logging_validation_results"]
+
+    - id: validate_tools
+      agent: tool_integration_expert
+      action: "validate-tool-integration"
+      inputs:
+        required: ["tools_integrated"]
+      outputs:
+        produced: ["tools_validation_results"]
+
+  then:
+    agent: reporting_analyst
+    action: "generate-comprehensive-feature-report"
+    inputs:
+      required: ["validation_results", "mcp_validation_results", "memory_validation_results", "logging_validation_results", "tools_validation_results"]
+    outputs:
+      produced: ["comprehensive_report", "feature_coverage_analysis", "system_status_summary"]
+
+  # Final delegation to sub-agents for detailed analysis
+  steps:
+    - id: delegate_detailed_analysis
+      agent: sub_agent_coordinator
+      action: "delegate-to-sub-agents-for-detailed-analysis"
+      inputs:
+        required: ["comprehensive_report"]
+      outputs:
+        produced: ["detailed_analysis_results", "specialized_insights"]
+
+    - id: process_with_sub_agents
+      agent: sub_agent_coordinator
+      action: "DELEGATE_TO:data_processor:Process the validation data and generate statistics"
+      inputs:
+        required: ["detailed_analysis_results"]
+      outputs:
+        produced: ["processed_statistics", "data_summary"]
+
+    - id: api_analysis
+      agent: sub_agent_coordinator
+      action: "DELEGATE_TO:api_handler:Analyze API performance and network logs"
+      inputs:
+        required: ["logging_validation_results"]
+      outputs:
+        produced: ["api_performance_report", "network_analysis"]
+
+    - id: validation_review
+      agent: sub_agent_coordinator
+      action: "DELEGATE_TO:validation_expert:Review all validation results and ensure quality"
+      inputs:
+        required: ["validation_results", "feature_status"]
+      outputs:
+        produced: ["final_validation_report", "quality_assurance_passed"]
+
+    - id: compile_final_report
+      agent: reporting_analyst
+      action: "compile-final-comprehensive-report"
+      inputs:
+        required: ["processed_statistics", "api_performance_report", "final_validation_report"]
+      outputs:
+        produced: ["final_comprehensive_report", "system_readiness_assessment"]

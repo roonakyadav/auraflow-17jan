@@ -1,0 +1,4 @@
+[2026-01-18T03:59:18.282Z] [INFO] [EXECUTOR] Starting execution of workflow: tech-trend-analysis | Metadata: {"workflowId":"tech-trend-analysis","workflowType":"sequential","agentCount":2,"stepCount":2,"branchCount":0}
+[2026-01-18T03:59:18.288Z] [INFO] [EXECUTOR] Starting agent: researcher | Metadata: {"agentId":"researcher","agentRole":"Technology Research Analyst","stepId":"research_step"}
+[2026-01-18T03:59:19.041Z] [INFO] [EXECUTOR] Starting agent: writer | Metadata: {"agentId":"writer","agentRole":"Technical Content Writer","stepId":"writing_step"}
+[2026-01-18T03:59:19.310Z] [INFO] [EXECUTOR] Workflow tech-trend-analysis execution completed | Metadata: {"workflowId":"tech-trend-analysis","success":true,"durationMs":1025}

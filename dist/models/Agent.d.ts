@@ -1,5 +1,8 @@
 import { Context } from './Context';
 import { ToolRegistry } from '../tools/ToolRegistry';
+import { NetworkLogger } from '../logs/NetworkLogger';
+import { PersistentMemory } from '../memory/PersistentMemory';
+import { VectorMemory } from '../memory/VectorMemory';
 /**
  * Represents an agent in the orchestration system.
  * An agent has a specific role, goal, and set of tools it can use.
@@ -24,6 +27,9 @@ export declare class Agent {
     subAgents: Agent[];
     private toolRegistry;
     private llmClient;
+    private networkLogger;
+    private persistentMemory;
+    private vectorMemory;
     /**
      * Creates a new Agent instance
      * @param id - Unique identifier for the agent
@@ -32,8 +38,19 @@ export declare class Agent {
      * @param tools - Array of tools available to the agent
      * @param subAgents - Array of sub-agents
      * @param toolRegistry - Tool registry for executing tools
+     * @param networkLogger - Network logger for tracking API calls
      */
-    constructor(id: string, role: string, goal: string, tools: string[], subAgents?: Agent[], toolRegistry?: ToolRegistry | null);
+    constructor(id: string, role: string, goal: string, tools: string[], subAgents?: Agent[], toolRegistry?: ToolRegistry | null, networkLogger?: NetworkLogger, persistentMemory?: PersistentMemory);
+    /**
+     * Sets the persistent memory for this agent
+     * @param persistentMemory - The persistent memory instance
+     */
+    setPersistentMemory(persistentMemory: PersistentMemory): void;
+    /**
+     * Sets the vector memory for this agent
+     * @param vectorMemory - The vector memory instance
+     */
+    setVectorMemory(vectorMemory: VectorMemory): void;
     /**
      * Runs the agent with the given context
      * @param context - The shared context containing messages

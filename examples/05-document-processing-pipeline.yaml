@@ -1,0 +1,38 @@
+id: legal-document-processing
+
+context:
+  document_type: "Contract agreements and legal documents"
+  processing_volume: "50+ contracts per month"
+  output_format: "Structured data extraction and compliance checklist"
+
+agents:
+  - id: document_processor
+    role: "Legal Document Processor"
+    goal: "Extract key terms, obligations, and compliance requirements from legal contracts"
+    tools: ["file_system", "web_search"]
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: document_ingestion
+      agent: document_processor
+      action: "scan_and_catalog_legal_documents"
+      inputs:
+        required: []
+      outputs:
+        produced: ["document_inventory", "processing_queue"]
+    - id: content_extraction
+      agent: document_processor
+      action: "extract_contract_terms_and_clauses"
+      inputs:
+        required: ["document_inventory"]
+      outputs:
+        produced: ["contract_data", "key_obligations"]
+    - id: compliance_check
+      agent: document_processor
+      action: "verify_regulatory_compliance_and_risk_factors"
+      inputs:
+        required: ["contract_data"]
+      outputs:
+        produced: ["compliance_report", "risk_assessment"]

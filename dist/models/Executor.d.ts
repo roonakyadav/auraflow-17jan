@@ -1,18 +1,24 @@
 import { Workflow } from './Workflow';
 import { Context } from './Context';
 import { Agent } from './Agent';
+import { NetworkLogger } from '../logs/NetworkLogger';
 /**
  * Responsible for executing workflows.
  * This class handles the actual execution of workflow steps using agents.
  */
 export declare class Executor {
+    private persistentMemory;
+    private vectorMemory;
+    private logger;
+    private networkLogger;
+    constructor();
     /**
      * Executes a workflow using the provided agents and context
      * @param workflow - The workflow to execute
      * @param agents - Array of agents available for the workflow
      * @param context - Shared context for the workflow
      */
-    execute(workflow: Workflow, agents: Agent[], context: Context): Promise<void>;
+    execute(workflow: Workflow, agents: Agent[], context: Context, networkLogger?: NetworkLogger): Promise<void>;
     /**
      * Executes a sequential workflow
      * @param workflow - The sequential workflow to execute

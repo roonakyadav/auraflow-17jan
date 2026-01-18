@@ -1,0 +1,6 @@
+[2026-01-18T04:54:23.609Z] [INFO] [EXECUTOR] Starting execution of workflow: vector-memory-test-disabled | Metadata: {"workflowId":"vector-memory-test-disabled","workflowType":"sequential","agentCount":1,"stepCount":2,"branchCount":0}
+[2026-01-18T04:54:23.614Z] [INFO] [EXECUTOR] Starting agent: test_agent | Metadata: {"agentId":"test_agent","agentRole":"Test Agent for Vector Memory Verification","stepId":"first_step"}
+[2026-01-18T04:54:25.375Z] [INFO] [EXECUTOR] Agent test_agent execution completed | Metadata: {"agentId":"test_agent","stepId":"first_step","success":true,"durationMs":1760,"outputLength":2066}
+[2026-01-18T04:54:25.379Z] [INFO] [EXECUTOR] Starting agent: test_agent | Metadata: {"agentId":"test_agent","agentRole":"Test Agent for Vector Memory Verification","stepId":"second_step"}
+[2026-01-18T04:54:26.273Z] [INFO] [EXECUTOR] Agent test_agent execution completed | Metadata: {"agentId":"test_agent","stepId":"second_step","success":true,"durationMs":893,"outputLength":2066}
+[2026-01-18T04:54:26.276Z] [INFO] [EXECUTOR] Workflow vector-memory-test-disabled execution completed | Metadata: {"workflowId":"vector-memory-test-disabled","success":true,"durationMs":2664}

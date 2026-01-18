@@ -1,0 +1,48 @@
+id: product-launch-strategy
+
+context:
+  product_category: "Smart home automation devices"
+  target_market: "North American residential consumers"
+  launch_timeline: "Q3 2024 market entry"
+
+agents:
+  - id: market_analyst
+    role: "Market Research Analyst"
+    goal: "Analyze competitive landscape and consumer demand for smart home devices"
+    tools: ["web_search"]
+
+  - id: technical_reviewer
+    role: "Product Technical Reviewer"
+    goal: "Evaluate technical specifications and innovation factors of competing products"
+    tools: ["web_search"]
+
+  - id: launch_strategist
+    role: "Product Launch Strategist"
+    goal: "Synthesize market and technical insights into comprehensive launch strategy"
+    tools: []
+
+workflow:
+  type: parallel
+  stopOnError: false
+  branches:
+    - id: market_analysis
+      agent: market_analyst
+      action: "analyze_smart_home_market_competition"
+      inputs:
+        required: []
+      outputs:
+        produced: ["market_positioning", "consumer_preferences"]
+    - id: technical_assessment
+      agent: technical_reviewer
+      action: "evaluate_competitive_product_features"
+      inputs:
+        required: []
+      outputs:
+        produced: ["technical_benchmarks", "innovation_gaps"]
+  then:
+    agent: launch_strategist
+    action: "develop_comprehensive_launch_plan"
+    inputs:
+      required: ["market_positioning", "technical_benchmarks"]
+    outputs:
+      produced: ["launch_strategy", "marketing_approach"]

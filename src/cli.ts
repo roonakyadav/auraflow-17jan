@@ -12,6 +12,7 @@ import { Agent } from './models/Agent';
 import { Workflow } from './models/Workflow';
 import { WorkflowVisualization } from './visualization/WorkflowVisualization';
 import { ToolRegistry } from './tools/ToolRegistry';
+import { NetworkLogger } from './logs/NetworkLogger';
 
 // Type definition for API keys configuration
 interface ApiKeyConfig {
@@ -135,32 +136,37 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
 
   // Validate agents
   if (!rootYamlData.agents || !Array.isArray(rootYamlData.agents) || rootYamlData.agents.length === 0) {
-    errors.push('Workflow must have a non-empty agents array');
+    errors.push('❌ Workflow must have a non-empty agents array');
   } else {
     const agentIds = new Set<string>();
     
     // Helper function to validate agent structure
     const validateAgent = (agent: any, prefix: string) => {
       if (typeof agent.id !== 'string' || !agent.id.trim()) {
-        errors.push(`${prefix} must have a valid id`);
+        errors.push(`❌ ${prefix} must have a valid id`);
       } else if (agentIds.has(agent.id)) {
-        errors.push(`${prefix} id '${agent.id}' is not unique`);
+        errors.push(`❌ ${prefix} id '${agent.id}' is not unique - duplicate IDs are not allowed`);
       } else {
         agentIds.add(agent.id);
       }
 
       if (typeof agent.role !== 'string' || !agent.role.trim()) {
-        errors.push(`${prefix} must have a valid role`);
+        errors.push(`❌ ${prefix} must have a valid role`);
       }
 
       if (typeof agent.goal !== 'string' || !agent.goal.trim()) {
-        errors.push(`${prefix} must have a valid goal`);
+        errors.push(`❌ ${prefix} must have a valid goal`);
+      }
+      
+      // Validate tools if they exist
+      if (agent.tools && !Array.isArray(agent.tools)) {
+        errors.push(`❌ ${prefix} 'tools' field must be an array of tool names`);
       }
       
       // Validate sub-agents if they exist
       if (agent.subAgents) {
         if (!Array.isArray(agent.subAgents)) {
-          errors.push(`${prefix} subAgents must be an array`);
+          errors.push(`❌ ${prefix} 'subAgents' must be an array`);
         } else {
           agent.subAgents.forEach((subAgent: any, index: number) => {
             validateAgent(subAgent, `${prefix}.subAgents[${index}]`);
@@ -176,21 +182,19 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
 
   // Validate rootYamlData object exists
   if (!rootYamlData) {
-    errors.push("Missing workflow configuration in YAML");
+    errors.push("❌ Missing workflow configuration in YAML - file may be empty or malformed");
     return { isValid: errors.length === 0, errors };
   }
   
   // Validate rootYamlData.workflow exists
   if (!rootYamlData.workflow) {
-    errors.push("Missing 'workflow' block in YAML");
-    console.error("Parsed workflow object:", rootYamlData);
+    errors.push("❌ Missing 'workflow' block in YAML - required top-level section missing");
     return { isValid: errors.length === 0, errors };
   }
   
   // Validate workflow.type exists
   if (!('type' in rootYamlData.workflow)) {
-    errors.push("Missing 'workflow.type' field in YAML");
-    console.error("Parsed workflow object:", rootYamlData);
+    errors.push("❌ Missing 'workflow.type' field in YAML - required field to determine execution strategy");
     return { isValid: errors.length === 0, errors };
   }
   
@@ -199,64 +203,132 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
   const normalizedType = String(rawType).trim().toLowerCase();
   
   if (normalizedType !== 'sequential' && normalizedType !== 'parallel' && normalizedType !== 'parallel_then' && normalizedType !== 'conditional') {
-    errors.push(`Invalid workflow type. Received: '${rawType}', normalized: '${normalizedType}'. Valid types: 'sequential', 'parallel', 'parallel_then', 'conditional'`);
+    errors.push(`❌ Invalid workflow type. Received: '${rawType}', normalized: '${normalizedType}'. Valid types: 'sequential', 'parallel', 'parallel_then', 'conditional'`);
   }
 
   // Validate workflow based on normalized type
   if (normalizedType === 'sequential') {
     if (!rootYamlData.workflow.steps || !Array.isArray(rootYamlData.workflow.steps) || rootYamlData.workflow.steps.length === 0) {
-      errors.push('Sequential workflow must have a non-empty steps array');
+      errors.push('❌ Sequential workflow must have a non-empty steps array - at least one step is required');
     } else {
+      // Track step IDs to check for duplicates
+      const stepIds = new Set<string>();
+      
       for (const step of rootYamlData.workflow.steps) {
+        // Validate step ID
+        if (step.id && typeof step.id !== 'string') {
+          errors.push(`❌ Step ID must be a string, got ${typeof step.id}`);
+        } else if (step.id && stepIds.has(step.id)) {
+          errors.push(`❌ Duplicate step ID detected: '${step.id}' - all step IDs must be unique`);
+        } else if (step.id) {
+          stepIds.add(step.id);
+        }
+        
         if (typeof step.agent !== 'string' || !step.agent.trim()) {
-          errors.push(`Each step must define an 'agent' field`);
+          errors.push(`❌ Each step must define an 'agent' field with a valid agent ID`);
         } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === step.agent)) {
-          errors.push(`Step with agent '${step.agent}' must reference a valid agent id`);
+          errors.push(`❌ Step with agent '${step.agent}' must reference a valid agent ID that exists in the agents section`);
         }
         
         // Validate inputs structure
         if (step.inputs) {
           if (!step.inputs.required || !Array.isArray(step.inputs.required)) {
-            errors.push(`Step '${step.id}' must have 'inputs.required' as an array of required input keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' must have 'inputs.required' as an array of required input keys`);
           }
           if (step.inputs.optional && !Array.isArray(step.inputs.optional)) {
-            errors.push(`Step '${step.id}' 'inputs.optional' must be an array of optional input keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' 'inputs.optional' must be an array of optional input keys`);
+          }
+          
+          // Check for overlapping required and optional inputs
+          if (step.inputs.required && step.inputs.optional) {
+            const requiredSet = new Set(step.inputs.required);
+            const optionalSet = new Set(step.inputs.optional);
+            const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+            if (overlap.length > 0) {
+              errors.push(`❌ Step '${step.id || 'unknown'}' has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+            }
           }
         }
         
         // Validate outputs structure
         if (step.outputs) {
           if (!step.outputs.produced || !Array.isArray(step.outputs.produced)) {
-            errors.push(`Step '${step.id}' must have 'outputs.produced' as an array of output keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' must have 'outputs.produced' as an array of output keys`);
+          }
+          
+          // Check for duplicate output keys
+          if (step.outputs.produced && Array.isArray(step.outputs.produced)) {
+            const outputSet = new Set<string>();
+            for (const output of step.outputs.produced) {
+              if (outputSet.has(output)) {
+                errors.push(`❌ Step '${step.id || 'unknown'}' has duplicate output key: '${output}'`);
+              } else {
+                outputSet.add(output);
+              }
+            }
           }
         }
       }
     }
   } else if (normalizedType === 'parallel') {
     if (!rootYamlData.workflow.branches || !Array.isArray(rootYamlData.workflow.branches) || rootYamlData.workflow.branches.length === 0) {
-      errors.push('Parallel workflow must have a non-empty branches array');
+      errors.push('❌ Parallel workflow must have a non-empty branches array - at least one branch is required');
     } else {
+      // Track branch IDs to check for duplicates
+      const branchIds = new Set<string>();
+      
       for (const branch of rootYamlData.workflow.branches) {
+        // Validate branch ID
+        if (branch.id && typeof branch.id !== 'string') {
+          errors.push(`❌ Branch ID must be a string, got ${typeof branch.id}`);
+        } else if (branch.id && branchIds.has(branch.id)) {
+          errors.push(`❌ Duplicate branch ID detected: '${branch.id}' - all branch IDs must be unique`);
+        } else if (branch.id) {
+          branchIds.add(branch.id);
+        }
+        
         if (typeof branch.agent !== 'string' || !branch.agent.trim()) {
-          errors.push(`Each branch must define an 'agent' field`);
+          errors.push(`❌ Each branch must define an 'agent' field with a valid agent ID`);
         } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === branch.agent)) {
-          errors.push(`Branch with agent '${branch.agent}' must reference a valid agent id`);
+          errors.push(`❌ Branch with agent '${branch.agent}' must reference a valid agent ID that exists in the agents section`);
         }
         
         // Validate inputs structure
         if (branch.inputs) {
           if (!branch.inputs.required || !Array.isArray(branch.inputs.required)) {
-            errors.push(`Branch '${branch.id}' must have 'inputs.required' as an array of required input keys`);
+            errors.push(`❌ Branch '${branch.id || 'unknown'}' must have 'inputs.required' as an array of required input keys`);
           }
           if (branch.inputs.optional && !Array.isArray(branch.inputs.optional)) {
-            errors.push(`Branch '${branch.id}' 'inputs.optional' must be an array of optional input keys`);
+            errors.push(`❌ Branch '${branch.id || 'unknown'}' 'inputs.optional' must be an array of optional input keys`);
+          }
+          
+          // Check for overlapping required and optional inputs
+          if (branch.inputs.required && branch.inputs.optional) {
+            const requiredSet = new Set(branch.inputs.required);
+            const optionalSet = new Set(branch.inputs.optional);
+            const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+            if (overlap.length > 0) {
+              errors.push(`❌ Branch '${branch.id || 'unknown'}' has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+            }
           }
         }
         
         // Validate outputs structure
         if (branch.outputs) {
           if (!branch.outputs.produced || !Array.isArray(branch.outputs.produced)) {
-            errors.push(`Branch '${branch.id}' must have 'outputs.produced' as an array of output keys`);
+            errors.push(`❌ Branch '${branch.id || 'unknown'}' must have 'outputs.produced' as an array of output keys`);
+          }
+          
+          // Check for duplicate output keys
+          if (branch.outputs.produced && Array.isArray(branch.outputs.produced)) {
+            const outputSet = new Set<string>();
+            for (const output of branch.outputs.produced) {
+              if (outputSet.has(output)) {
+                errors.push(`❌ Branch '${branch.id || 'unknown'}' has duplicate output key: '${output}'`);
+              } else {
+                outputSet.add(output);
+              }
+            }
           }
         }
       }
@@ -265,54 +337,110 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
       if (rootYamlData.workflow.then) {
         const thenStep = rootYamlData.workflow.then;
         if (!thenStep.agent || typeof thenStep.agent !== 'string' || !thenStep.agent.trim()) {
-          errors.push("'Then' step must reference a valid agent id");
+          errors.push("❌ 'Then' step must reference a valid agent ID");
         } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === thenStep.agent)) {
-          errors.push(`'Then' step references non-existent agent id '${thenStep.agent}'`);
+          errors.push(`❌ 'Then' step references non-existent agent ID '${thenStep.agent}' - must match an agent in the agents section`);
         }
         
         // Validate inputs structure
         if (thenStep.inputs) {
           if (!thenStep.inputs.required || !Array.isArray(thenStep.inputs.required)) {
-            errors.push("'Then' step must have 'inputs.required' as an array of required input keys");
+            errors.push("❌ 'Then' step must have 'inputs.required' as an array of required input keys");
           }
           if (thenStep.inputs.optional && !Array.isArray(thenStep.inputs.optional)) {
-            errors.push("'Then' step 'inputs.optional' must be an array of optional input keys");
+            errors.push("❌ 'Then' step 'inputs.optional' must be an array of optional input keys");
+          }
+          
+          // Check for overlapping required and optional inputs
+          if (thenStep.inputs.required && thenStep.inputs.optional) {
+            const requiredSet = new Set(thenStep.inputs.required);
+            const optionalSet = new Set(thenStep.inputs.optional);
+            const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+            if (overlap.length > 0) {
+              errors.push(`❌ 'Then' step has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+            }
           }
         }
         
         // Validate outputs structure
         if (thenStep.outputs) {
           if (!thenStep.outputs.produced || !Array.isArray(thenStep.outputs.produced)) {
-            errors.push("'Then' step must have 'outputs.produced' as an array of output keys");
+            errors.push("❌ 'Then' step must have 'outputs.produced' as an array of output keys");
+          }
+          
+          // Check for duplicate output keys
+          if (thenStep.outputs.produced && Array.isArray(thenStep.outputs.produced)) {
+            const outputSet = new Set<string>();
+            for (const output of thenStep.outputs.produced) {
+              if (outputSet.has(output)) {
+                errors.push(`❌ 'Then' step has duplicate output key: '${output}'`);
+              } else {
+                outputSet.add(output);
+              }
+            }
           }
         }
       }
     }
   } else if (normalizedType === 'conditional') {
     if (!rootYamlData.workflow.steps || !Array.isArray(rootYamlData.workflow.steps) || rootYamlData.workflow.steps.length === 0) {
-      errors.push('Conditional workflow must have a non-empty steps array');
+      errors.push('❌ Conditional workflow must have a non-empty steps array - at least one initial step is required');
     } else {
+      // Track step IDs to check for duplicates
+      const stepIds = new Set<string>();
+      
       for (const step of rootYamlData.workflow.steps) {
+        // Validate step ID
+        if (step.id && typeof step.id !== 'string') {
+          errors.push(`❌ Step ID must be a string, got ${typeof step.id}`);
+        } else if (step.id && stepIds.has(step.id)) {
+          errors.push(`❌ Duplicate step ID detected: '${step.id}' - all step IDs must be unique`);
+        } else if (step.id) {
+          stepIds.add(step.id);
+        }
+        
         if (typeof step.agent !== 'string' || !step.agent.trim()) {
-          errors.push(`Each step must define an 'agent' field`);
+          errors.push(`❌ Each step must define an 'agent' field with a valid agent ID`);
         } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === step.agent)) {
-          errors.push(`Step with agent '${step.agent}' must reference a valid agent id`);
+          errors.push(`❌ Step with agent '${step.agent}' must reference a valid agent ID that exists in the agents section`);
         }
         
         // Validate inputs structure
         if (step.inputs) {
           if (!step.inputs.required || !Array.isArray(step.inputs.required)) {
-            errors.push(`Step '${step.id}' must have 'inputs.required' as an array of required input keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' must have 'inputs.required' as an array of required input keys`);
           }
           if (step.inputs.optional && !Array.isArray(step.inputs.optional)) {
-            errors.push(`Step '${step.id}' 'inputs.optional' must be an array of optional input keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' 'inputs.optional' must be an array of optional input keys`);
+          }
+          
+          // Check for overlapping required and optional inputs
+          if (step.inputs.required && step.inputs.optional) {
+            const requiredSet = new Set(step.inputs.required);
+            const optionalSet = new Set(step.inputs.optional);
+            const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+            if (overlap.length > 0) {
+              errors.push(`❌ Step '${step.id || 'unknown'}' has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+            }
           }
         }
         
         // Validate outputs structure
         if (step.outputs) {
           if (!step.outputs.produced || !Array.isArray(step.outputs.produced)) {
-            errors.push(`Step '${step.id}' must have 'outputs.produced' as an array of output keys`);
+            errors.push(`❌ Step '${step.id || 'unknown'}' must have 'outputs.produced' as an array of output keys`);
+          }
+          
+          // Check for duplicate output keys
+          if (step.outputs.produced && Array.isArray(step.outputs.produced)) {
+            const outputSet = new Set<string>();
+            for (const output of step.outputs.produced) {
+              if (outputSet.has(output)) {
+                errors.push(`❌ Step '${step.id || 'unknown'}' has duplicate output key: '${output}'`);
+              } else {
+                outputSet.add(output);
+              }
+            }
           }
         }
       }
@@ -320,51 +448,80 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
     
     // Validate condition configuration
     if (!rootYamlData.workflow.condition) {
-      errors.push('Conditional workflow must have a condition configuration');
+      errors.push('❌ Conditional workflow must have a condition configuration');
     } else {
       const condition = rootYamlData.workflow.condition;
       
       if (!condition.stepId || typeof condition.stepId !== 'string') {
-        errors.push("Conditional workflow must have 'condition.stepId' to specify which step's output will be evaluated");
+        errors.push("❌ Conditional workflow must have 'condition.stepId' to specify which step's output will be evaluated");
       } else {
         // Check that the stepId exists in the steps array
         const stepExists = rootYamlData.workflow.steps?.some(step => step.id === condition.stepId);
         if (!stepExists) {
-          errors.push(`Condition stepId '${condition.stepId}' does not match any step in the workflow`);
+          errors.push(`❌ Condition stepId '${condition.stepId}' does not match any step in the workflow - must reference an existing step ID`);
         }
       }
       
       if (!condition.cases || !Array.isArray(condition.cases) || condition.cases.length === 0) {
-        errors.push("Conditional workflow must have 'condition.cases' as an array of conditional branches");
+        errors.push("❌ Conditional workflow must have 'condition.cases' as a non-empty array of conditional branches");
       } else {
+        // Track condition strings to check for duplicates
+        const conditionStrings = new Set<string>();
+        
         for (const c of condition.cases) {
           if (!c.condition || typeof c.condition !== 'string') {
-            errors.push("Each condition case must have a 'condition' string to match against agent output");
+            errors.push("❌ Each condition case must have a 'condition' string to match against agent output");
+          } else if (conditionStrings.has(c.condition)) {
+            errors.push(`❌ Duplicate condition string detected: '${c.condition}' - all condition strings must be unique`);
+          } else {
+            conditionStrings.add(c.condition);
           }
           
           if (!c.step) {
-            errors.push("Each condition case must have a 'step' configuration");
+            errors.push("❌ Each condition case must have a 'step' configuration");
           } else {
             if (!c.step.agent || typeof c.step.agent !== 'string' || !c.step.agent.trim()) {
-              errors.push(`Condition case step must reference a valid agent id`);
+              errors.push(`❌ Condition case step must reference a valid agent ID`);
             } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === c.step.agent)) {
-              errors.push(`Condition case step references non-existent agent id '${c.step.agent}'`);
+              errors.push(`❌ Condition case step references non-existent agent ID '${c.step.agent}' - must match an agent in the agents section`);
             }
             
             // Validate inputs structure
             if (c.step.inputs) {
               if (!c.step.inputs.required || !Array.isArray(c.step.inputs.required)) {
-                errors.push(`Condition case step must have 'inputs.required' as an array of required input keys`);
+                errors.push(`❌ Condition case step must have 'inputs.required' as an array of required input keys`);
               }
               if (c.step.inputs.optional && !Array.isArray(c.step.inputs.optional)) {
-                errors.push(`Condition case step 'inputs.optional' must be an array of optional input keys`);
+                errors.push(`❌ Condition case step 'inputs.optional' must be an array of optional input keys`);
+              }
+              
+              // Check for overlapping required and optional inputs
+              if (c.step.inputs.required && c.step.inputs.optional) {
+                const requiredSet = new Set(c.step.inputs.required);
+                const optionalSet = new Set(c.step.inputs.optional);
+                const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+                if (overlap.length > 0) {
+                  errors.push(`❌ Condition case step has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+                }
               }
             }
             
             // Validate outputs structure
             if (c.step.outputs) {
               if (!c.step.outputs.produced || !Array.isArray(c.step.outputs.produced)) {
-                errors.push(`Condition case step must have 'outputs.produced' as an array of output keys`);
+                errors.push(`❌ Condition case step must have 'outputs.produced' as an array of output keys`);
+              }
+              
+              // Check for duplicate output keys
+              if (c.step.outputs.produced && Array.isArray(c.step.outputs.produced)) {
+                const outputSet = new Set<string>();
+                for (const output of c.step.outputs.produced) {
+                  if (outputSet.has(output)) {
+                    errors.push(`❌ Condition case step has duplicate output key: '${output}'`);
+                  } else {
+                    outputSet.add(output);
+                  }
+                }
               }
             }
           }
@@ -375,25 +532,47 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
       const defaultStep = condition.default;
       if (defaultStep) {
         if (!defaultStep.agent || typeof defaultStep.agent !== 'string' || !defaultStep.agent.trim()) {
-          errors.push("Default condition step must reference a valid agent id");
+          errors.push("❌ Default condition step must reference a valid agent ID");
         } else if (rootYamlData.agents && !rootYamlData.agents.some(agent => agent.id === defaultStep.agent)) {
-          errors.push(`Default condition step references non-existent agent id '${defaultStep.agent}'`);
+          errors.push(`❌ Default condition step references non-existent agent ID '${defaultStep.agent}' - must match an agent in the agents section`);
         }
         
         // Validate inputs structure
         if (defaultStep.inputs) {
           if (!defaultStep.inputs.required || !Array.isArray(defaultStep.inputs.required)) {
-            errors.push("Default condition step must have 'inputs.required' as an array of required input keys");
+            errors.push("❌ Default condition step must have 'inputs.required' as an array of required input keys");
           }
           if (defaultStep.inputs.optional && !Array.isArray(defaultStep.inputs.optional)) {
-            errors.push("Default condition step 'inputs.optional' must be an array of optional input keys");
+            errors.push("❌ Default condition step 'inputs.optional' must be an array of optional input keys");
+          }
+          
+          // Check for overlapping required and optional inputs
+          if (defaultStep.inputs.required && defaultStep.inputs.optional) {
+            const requiredSet = new Set(defaultStep.inputs.required);
+            const optionalSet = new Set(defaultStep.inputs.optional);
+            const overlap = [...requiredSet].filter(x => optionalSet.has(x));
+            if (overlap.length > 0) {
+              errors.push(`❌ Default condition step has overlapping required and optional inputs: [${overlap.join(', ')}] - inputs cannot be both required and optional`);
+            }
           }
         }
         
         // Validate outputs structure
         if (defaultStep.outputs) {
           if (!defaultStep.outputs.produced || !Array.isArray(defaultStep.outputs.produced)) {
-            errors.push("Default condition step must have 'outputs.produced' as an array of output keys");
+            errors.push("❌ Default condition step must have 'outputs.produced' as an array of output keys");
+          }
+          
+          // Check for duplicate output keys
+          if (defaultStep.outputs.produced && Array.isArray(defaultStep.outputs.produced)) {
+            const outputSet = new Set<string>();
+            for (const output of defaultStep.outputs.produced) {
+              if (outputSet.has(output)) {
+                errors.push(`❌ Default condition step has duplicate output key: '${output}'`);
+              } else {
+                outputSet.add(output);
+              }
+            }
           }
         }
       }
@@ -409,15 +588,47 @@ function validateWorkflow(rootYamlData: YamlWorkflow): {
 async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[], workflow: Workflow }> {
   try {
     const fileContent = fs.readFileSync(filePath, 'utf8');
-    const yamlData = yaml.load(fileContent) as YamlWorkflow;
+    let yamlData: YamlWorkflow;
+    
+    try {
+      yamlData = yaml.load(fileContent) as YamlWorkflow;
+    } catch (yamlError: any) {
+      console.error(chalk.red('❌ YAML Parse Error:')); 
+      console.error(chalk.red(`   Failed to parse YAML file: ${filePath}`));
+      console.error(chalk.red(`   Error: ${yamlError.message || 'Unknown YAML parsing error'}`));
+      console.error(chalk.yellow('\n💡 Hint: Check for common YAML issues like:' ));
+      console.error(chalk.yellow('   - Incorrect indentation (use spaces, not tabs)')); 
+      console.error(chalk.yellow('   - Missing colons after keys')); 
+      console.error(chalk.yellow('   - Unquoted special characters')); 
+      console.error(chalk.yellow('   - Unclosed brackets or braces')); 
+      process.exit(1);
+    }
 
     // Validate the workflow
     const validation = validateWorkflow(yamlData);
     if (!validation.isValid) {
-      console.error('Validation errors found in workflow file:');
-      for (const error of validation.errors) {
-        console.error(`- ${error}`);
+      // Enhanced error reporting
+      console.error(chalk.red('╔══════════════════════════════════════════════════════════════════════════════╗'));
+      console.error(chalk.red('║                           ❌ VALIDATION FAILED                            ║'));
+      console.error(chalk.red('╠══════════════════════════════════════════════════════════════════════════════╣'));
+      console.error(chalk.red(`║ File: ${filePath.padEnd(65)} ║`));
+      console.error(chalk.red(`║ Errors Found: ${validation.errors.length.toString().padEnd(57)} ║`));
+      console.error(chalk.red('╚══════════════════════════════════════════════════════════════════════════════╝'));
+      
+      console.error(chalk.red('\n📋 DETAILED ERRORS:'));
+      
+      for (let i = 0; i < validation.errors.length; i++) {
+        console.error(chalk.red(`   ${String(i + 1).padStart(2)}. ${validation.errors[i]}`));
       }
+      
+      console.error(chalk.yellow('\n💡 RESOLUTION TIPS:'));
+      console.error(chalk.yellow('   • Check that all agent IDs referenced in steps exist in the agents section')); 
+      console.error(chalk.yellow('   • Ensure all required fields (id, role, goal) are present for agents')); 
+      console.error(chalk.yellow('   • Verify workflow type is one of: sequential, parallel, conditional')); 
+      console.error(chalk.yellow('   • Confirm arrays are properly formatted with correct indentation')); 
+      console.error(chalk.yellow('   • Make sure all required inputs/outputs are properly defined')); 
+      console.error(chalk.yellow('   • Ensure no duplicate IDs exist for agents, steps, or branches')); 
+      
       process.exit(1);
     }
 
@@ -428,7 +639,7 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
     const agents = yamlData.agents.map(agentData => {
       // Create sub-agents if they exist
       const subAgents = agentData.subAgents ? agentData.subAgents.map(subAgentData => 
-        new Agent(subAgentData.id, subAgentData.role, subAgentData.goal, subAgentData.tools || [], [], toolRegistry)
+        new Agent(subAgentData.id, subAgentData.role, subAgentData.goal, subAgentData.tools || [], [], toolRegistry, undefined)
       ) : [];
       
       return new Agent(
@@ -437,7 +648,8 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
         agentData.goal, 
         agentData.tools || [],
         subAgents,
-        toolRegistry
+        toolRegistry,
+        undefined // Will be set by executor
       );
     });
 
@@ -527,9 +739,13 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
     return { agents, workflow };
   } catch (error: any) {
     if (error.code === 'ENOENT') {
-      console.error(`Error: File not found - ${filePath}`);
+      console.error(chalk.red('❌ File Not Found Error:')); 
+      console.error(chalk.red(`   The specified workflow file does not exist: ${filePath}`));
+      console.error(chalk.yellow('   💡 Tip: Verify the file path and make sure the file exists.'));
     } else {
-      console.error(`Error parsing YAML file: ${error.message}`);
+      console.error(chalk.red('❌ Unexpected Error:')); 
+      console.error(chalk.red(`   An unexpected error occurred while loading the workflow: ${error.message}`));
+      console.error(chalk.yellow('   💡 Tip: Check file permissions and disk space availability.'));
     }
     process.exit(1);
   }
@@ -597,23 +813,23 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
     }
     
     // Print structured summary
-    console.log('\n>>> WORKFLOW INFO <<<');
-    console.log('ID:', workflow.id);
-    console.log('Type:', workflow.type);
+    console.log('\n' + chalk.bold.blue('>>> WORKFLOW INFO <<<'));
+    console.log('ID:', chalk.yellow(workflow.id));
+    console.log('Type:', chalk.magenta(workflow.type));
     
-    console.log('\n>>> AGENTS (${agents.length}) <<<');
+    console.log('\n' + chalk.bold.blue('>>> AGENTS (${agents.length}) <<<'));
     
     for (const agent of agents) {
-      console.log('- ' + agent.id + ' (' + agent.role + ')');
+      console.log('- ' + chalk.green(agent.id) + ' (' + chalk.cyan(agent.role) + ')');
     }
     
     // Check if dry-run mode is enabled
     if (argv.dryRun) {
-      console.log('\n>>> DRY RUN MODE <<<');
-      console.log('Workflow Type:', workflow.type);
+      console.log('\n' + chalk.bold.yellow('>>> DRY RUN MODE <<<'));
+      console.log('Workflow Type:', chalk.magenta(workflow.type));
       
       // Add visualization
-      console.log('\n' + WorkflowVisualization.generateVisualization(workflow));
+      console.log('\n' + chalk.reset(WorkflowVisualization.generateVisualization(workflow)));
       
       console.log('\n>>> EXECUTION PLAN <<<');
       if (workflow.type === 'sequential') {
@@ -625,32 +841,32 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       } else if (workflow.type === 'parallel') {
         if (workflow.branches.length > 0) {
           const branchNames = workflow.branches.map(branch => branch.agent).join(' → ');
-          console.log('  ' + branchNames + (workflow.then ? ' → ' + workflow.then.agent : ''));
+          console.log('  ' + chalk.green(branchNames) + (workflow.then ? chalk.white(' → ') + chalk.cyan(workflow.then.agent) : ''));
         }
       }
       
-      console.log('\n>>> EXECUTION GRAPH <<<');
+      console.log('\n' + chalk.bold.blue('>>> EXECUTION GRAPH <<<'));
       if (workflow.type === 'sequential') {
-        const agentSequence = workflow.steps.map(step => step.agent).join(' → ');
-        console.log('  ' + agentSequence);
+        const agentSequence = workflow.steps.map(step => step.agent).join(chalk.white(' → '));
+        console.log('  ' + chalk.cyan(agentSequence));
       } else if (workflow.type === 'parallel') {
         if (workflow.branches.length > 0) {
           const branchAgents = workflow.branches.map(branch => branch.agent);
           if (workflow.then) {
-            console.log('  ' + branchAgents.join(' → ') + ' → ' + workflow.then.agent);
+            console.log('  ' + chalk.cyan(branchAgents.join(chalk.white(' → '))) + chalk.white(' → ') + chalk.cyan(workflow.then.agent));
           } else {
-            console.log('  ' + branchAgents.join(' → '));
+            console.log('  ' + chalk.cyan(branchAgents.join(chalk.white(' → '))));
           }
         }
       }
       
-      console.log('\n>>> VALIDATION COMPLETE <<<');
-      console.log('No agents executed.');
+      console.log('\n' + chalk.bold.green('>>> VALIDATION COMPLETE <<<'));
+      console.log(chalk.yellow('No agents executed.'));
       process.exit(0);
     }
     
     if (workflow.type === 'sequential') {
-      console.log('\n' + WorkflowVisualization.generateVisualization(workflow));
+      console.log('\n' + chalk.reset(WorkflowVisualization.generateVisualization(workflow)));
       
       console.log('\n>>> EXECUTION PLAN <<<');
       for (const step of workflow.steps) {
@@ -670,12 +886,18 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       const ContextClass = (await import('./models/Context')).Context;
       const context = new ContextClass();
       
+      // Create network logger for tracking API calls
+      const networkLogger = new NetworkLogger({
+        logPath: './network_logs',
+        level: 'INFO'
+      });
+      
       // Create executor and run the workflow
       const ExecutorClass = (await import('./models/Executor')).Executor;
       const executor = new ExecutorClass();
       
       try {
-        await executor.execute(workflow, agents, context);
+        await executor.execute(workflow, agents, context, networkLogger);
       } catch (error: any) {
         console.error(chalk.red('Execution error:'), error.message);
         process.exit(2);
@@ -711,12 +933,18 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
       const ContextClass = (await import('./models/Context')).Context;
       const context = new ContextClass();
       
+      // Create network logger for tracking API calls
+      const networkLogger = new NetworkLogger({
+        logPath: './network_logs',
+        level: 'INFO'
+      });
+      
       // Create executor and run the workflow
       const ExecutorClass = (await import('./models/Executor')).Executor;
       const executor = new ExecutorClass();
       
       try {
-        await executor.execute(workflow, agents, context);
+        await executor.execute(workflow, agents, context, networkLogger);
       } catch (error: any) {
         console.error(chalk.red('Execution error:'), error.message);
         process.exit(2);
@@ -729,17 +957,23 @@ async function loadWorkflowFromFile(filePath: string): Promise<{ agents: Agent[]
           
       console.log('\n>>> EXECUTION STARTED <<<');
       console.log('Starting conditional execution...');
-          
+                  
       // Create a new context for execution
       const ContextClass = (await import('./models/Context')).Context;
       const context = new ContextClass();
-          
+                  
+      // Create network logger for tracking API calls
+      const networkLogger = new NetworkLogger({
+        logPath: './network_logs',
+        level: 'INFO'
+      });
+                  
       // Create executor and run the workflow
       const ExecutorClass = (await import('./models/Executor')).Executor;
       const executor = new ExecutorClass();
-          
+                  
       try {
-        await executor.execute(workflow, agents, context);
+        await executor.execute(workflow, agents, context, networkLogger);
       } catch (error: any) {
         console.error(chalk.red('Execution error:'), error.message);
         process.exit(2);

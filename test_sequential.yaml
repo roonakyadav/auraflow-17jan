@@ -1,0 +1,19 @@
+id: test-sequential-workflow
+
+agents:
+  - id: dummy_agent
+    role: "Dummy Agent"
+    goal: "Return a simple test response"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: test_step
+      agent: dummy_agent
+      action: "test_action"
+      inputs:
+        required: []
+      outputs:
+        produced: ["test_output"]

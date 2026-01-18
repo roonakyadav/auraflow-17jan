@@ -1,5 +1,6 @@
 import { WebSearchTool } from './WebSearchTool';
 import { FileSystemTool } from './FileSystemTool';
+import chalk from 'chalk';
 
 /**
  * Tool Registry - Central management for all available tools
@@ -62,14 +63,22 @@ export class ToolRegistry {
     if (!tool) {
       throw new Error(`Tool '${toolName}' not found`);
     }
-
+    
+    console.log(chalk.blue(`\n🔧 Executing tool: ${chalk.green(toolName)}`));
+    
     // Execute tool based on its type
     if (toolName === 'web_search' && tool.search) {
-      return await tool.search(params.query);
+      console.log(chalk.yellow(`🔍 Searching for: ${params.query}`));
+      const result = await tool.search(params.query);
+      console.log(chalk.green(`✅ Web search completed with ${result.results?.length || 0} results`));
+      return result;
     }
     
     if (toolName === 'file_system' && tool.execute) {
-      return await tool.execute(params.operation, params.params);
+      console.log(chalk.yellow(`📁 File system operation: ${params.operation}`));
+      const result = await tool.execute(params.operation, params.params);
+      console.log(chalk.green(`✅ File system operation completed`));
+      return result;
     }
 
     throw new Error(`Tool '${toolName}' execution method not implemented`);

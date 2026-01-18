@@ -1,0 +1,48 @@
+id: renewable-energy-industry-analysis
+
+context:
+  industry_focus: "Solar and wind energy sector growth"
+  geographic_scope: "Global market with emphasis on US and European markets"
+  timeframe: "2024-2030 market projections"
+
+agents:
+  - id: industry_analyst
+    role: "Renewable Energy Industry Analyst"
+    goal: "Research market size, growth trends, and investment opportunities in solar/wind energy"
+    tools: ["web_search"]
+
+  - id: policy_researcher
+    role: "Energy Policy Researcher"
+    goal: "Analyze government policies and regulatory frameworks supporting renewable energy adoption"
+    tools: ["web_search"]
+
+  - id: market_strategist
+    role: "Market Strategy Consultant"
+    goal: "Synthesize research findings into actionable market entry and investment strategies"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: market_research
+      agent: industry_analyst
+      action: "analyze_global_renewable_energy_market_trends"
+      inputs:
+        required: []
+      outputs:
+        produced: ["market_size_data", "growth_projections"]
+    - id: policy_analysis
+      agent: policy_researcher
+      action: "research_renewable_energy_policies_and_incentives"
+      inputs:
+        required: ["market_size_data"]
+      outputs:
+        produced: ["policy_framework", "regulatory_landscape"]
+    - id: strategy_development
+      agent: market_strategist
+      action: "develop_comprehensive_market_entry_strategy"
+      inputs:
+        required: ["growth_projections", "policy_framework"]
+      outputs:
+        produced: ["investment_strategy", "market_opportunities"]

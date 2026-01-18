@@ -1,0 +1,53 @@
+id: software-architecture-review
+
+context:
+  project_type: "Enterprise e-commerce platform migration"
+  current_state: "Legacy monolithic architecture to microservices"
+  review_objective: "Technical feasibility and implementation roadmap"
+
+agents:
+  - id: chief_architect
+    role: "Chief Software Architect"
+    goal: "Lead comprehensive architecture review and provide strategic direction"
+    tools: ["web_search"]
+    subAgents:
+      - id: frontend_specialist
+        role: "Frontend Architecture Specialist"
+        goal: "Evaluate frontend component architecture and user experience design"
+        tools: ["web_search"]
+      
+      - id: backend_engineer
+        role: "Backend Systems Engineer"
+        goal: "Assess backend services, databases, and API architecture"
+        tools: ["web_search"]
+      
+      - id: devops_consultant
+        role: "DevOps Infrastructure Consultant"
+        goal: "Review deployment pipeline and infrastructure requirements"
+        tools: ["web_search"]
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: architecture_overview
+      agent: chief_architect
+      action: "conduct_high_level_architecture_assessment"
+      inputs:
+        required: []
+      outputs:
+        produced: ["architecture_summary", "migration_strategy"]
+    - id: detailed_review
+      agent: chief_architect
+      action: "delegate_to_sub_agents_for_detailed_analysis"
+      inputs:
+        required: ["architecture_summary"]
+      outputs:
+        produced: ["frontend_recommendations", "backend_optimizations", "infrastructure_needs"]
+    - id: integration_plan
+      agent: chief_architect
+      action: "synthesize_sub_agent_findings_into_coherent_plan"
+      inputs:
+        required: ["frontend_recommendations", "backend_optimizations", "infrastructure_needs"]
+      outputs:
+        produced: ["final_architecture_plan", "implementation_roadmap"]

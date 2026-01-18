@@ -1,0 +1,6 @@
+[2026-01-18T03:50:52.774Z] [INFO] [EXECUTOR] Starting execution of workflow: basic-sequential-test | Metadata: {"workflowId":"basic-sequential-test","workflowType":"sequential","agentCount":2,"stepCount":2,"branchCount":0}
+[2026-01-18T03:50:52.779Z] [INFO] [EXECUTOR] Starting agent: researcher | Metadata: {"agentId":"researcher","agentRole":"Research Assistant","stepId":"research_step"}
+[2026-01-18T03:50:54.758Z] [INFO] [EXECUTOR] Agent researcher execution completed | Metadata: {"agentId":"researcher","stepId":"research_step","success":true,"durationMs":1978,"outputLength":4011}
+[2026-01-18T03:50:54.760Z] [INFO] [EXECUTOR] Starting agent: writer | Metadata: {"agentId":"writer","agentRole":"Content Writer","stepId":"writing_step"}
+[2026-01-18T03:51:41.595Z] [INFO] [EXECUTOR] Agent writer execution completed | Metadata: {"agentId":"writer","stepId":"writing_step","success":true,"durationMs":46834,"outputLength":4051}
+[2026-01-18T03:51:41.603Z] [INFO] [EXECUTOR] Workflow basic-sequential-test execution completed | Metadata: {"workflowId":"basic-sequential-test","success":true,"durationMs":48826}

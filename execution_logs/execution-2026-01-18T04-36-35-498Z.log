@@ -1,0 +1,6 @@
+[2026-01-18T04:36:35.498Z] [INFO] [EXECUTOR] Starting execution of workflow: persistent-memory-test | Metadata: {"workflowId":"persistent-memory-test","workflowType":"sequential","agentCount":1,"stepCount":2,"branchCount":0}
+[2026-01-18T04:36:35.504Z] [INFO] [EXECUTOR] Starting agent: learning_agent | Metadata: {"agentId":"learning_agent","agentRole":"Learning Test Agent","stepId":"first_interaction"}
+[2026-01-18T04:36:36.319Z] [INFO] [EXECUTOR] Agent learning_agent execution completed | Metadata: {"agentId":"learning_agent","stepId":"first_interaction","success":true,"durationMs":814,"outputLength":112}
+[2026-01-18T04:36:36.323Z] [INFO] [EXECUTOR] Starting agent: learning_agent | Metadata: {"agentId":"learning_agent","agentRole":"Learning Test Agent","stepId":"second_interaction"}
+[2026-01-18T04:36:37.433Z] [INFO] [EXECUTOR] Agent learning_agent execution completed | Metadata: {"agentId":"learning_agent","stepId":"second_interaction","success":true,"durationMs":1109,"outputLength":1644}
+[2026-01-18T04:36:37.436Z] [INFO] [EXECUTOR] Workflow persistent-memory-test execution completed | Metadata: {"workflowId":"persistent-memory-test","success":true,"durationMs":1935}

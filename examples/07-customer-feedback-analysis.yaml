@@ -1,0 +1,48 @@
+id: saas-customer-satisfaction-study
+
+context:
+  company_domain: "Software-as-a-Service productivity tools"
+  feedback_sources: "Customer surveys, support tickets, app store reviews"
+  analysis_period: "Last 6 months of customer feedback"
+
+agents:
+  - id: feedback_collector
+    role: "Customer Experience Data Collector"
+    goal: "Gather and organize customer feedback from multiple channels"
+    tools: ["file_system"]
+
+  - id: sentiment_analyst
+    role: "Customer Sentiment Analyst"
+    goal: "Analyze emotional tone and satisfaction levels in customer feedback"
+    tools: ["web_search"]
+
+  - id: insights_generator
+    role: "Business Insights Generator"
+    goal: "Transform feedback analysis into actionable product improvement recommendations"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: data_collection
+      agent: feedback_collector
+      action: "aggregate_customer_feedback_from_all_channels"
+      inputs:
+        required: []
+      outputs:
+        produced: ["feedback_database", "organized_responses"]
+    - id: sentiment_analysis
+      agent: sentiment_analyst
+      action: "analyze_customer_sentiment_and_satisfaction_trends"
+      inputs:
+        required: ["organized_responses"]
+      outputs:
+        produced: ["sentiment_scores", "pain_points"]
+    - id: recommendation_development
+      agent: insights_generator
+      action: "generate_product_improvement_recommendations"
+      inputs:
+        required: ["sentiment_scores", "pain_points"]
+      outputs:
+        produced: ["improvement_priorities", "feature_requests"]

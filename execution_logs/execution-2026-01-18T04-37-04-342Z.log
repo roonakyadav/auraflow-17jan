@@ -1,0 +1,4 @@
+[2026-01-18T04:37:04.342Z] [INFO] [EXECUTOR] Starting execution of workflow: memory-recall-test | Metadata: {"workflowId":"memory-recall-test","workflowType":"sequential","agentCount":1,"stepCount":1,"branchCount":0}
+[2026-01-18T04:37:04.348Z] [INFO] [EXECUTOR] Starting agent: learning_agent | Metadata: {"agentId":"learning_agent","agentRole":"Learning Test Agent","stepId":"recall_test"}
+[2026-01-18T04:37:05.092Z] [INFO] [EXECUTOR] Agent learning_agent execution completed | Metadata: {"agentId":"learning_agent","stepId":"recall_test","success":true,"durationMs":743,"outputLength":709}
+[2026-01-18T04:37:05.099Z] [INFO] [EXECUTOR] Workflow memory-recall-test execution completed | Metadata: {"workflowId":"memory-recall-test","success":true,"durationMs":754}

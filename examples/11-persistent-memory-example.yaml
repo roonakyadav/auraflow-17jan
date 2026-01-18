@@ -1,0 +1,71 @@
+id: persistent-memory-learning-demo
+
+context:
+  learning_topic: "Machine Learning Fundamentals"
+  session_count: 3
+  knowledge_base_path: "./knowledge_base"
+
+agents:
+  - id: knowledge_trainer
+    role: "Knowledge Trainer"
+    goal: "Introduce fundamental concepts of machine learning to the student agent"
+    tools: ["web_search"]
+
+  - id: student_learner
+    role: "Learning Agent"
+    goal: "Absorb and retain knowledge about machine learning concepts, building on previous sessions"
+    tools: []
+
+  - id: knowledge_assessor
+    role: "Knowledge Assessment Specialist"
+    goal: "Evaluate the student's retention and understanding of concepts learned across multiple sessions"
+    tools: []
+
+  - id: memory_consolidator
+    role: "Memory Consolidation Expert"
+    goal: "Consolidate and organize learned knowledge for long-term retention"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: introduce_concepts
+      agent: knowledge_trainer
+      action: "introduce-ml-concepts"
+      inputs:
+        required: []
+      outputs:
+        produced: ["basic_concepts", "foundations"]
+
+    - id: learn_session_one
+      agent: student_learner
+      action: "absorb-session-one-knowledge"
+      inputs:
+        required: ["basic_concepts"]
+      outputs:
+        produced: ["session_one_learning", "retained_knowledge"]
+
+    - id: build_session_two
+      agent: student_learner
+      action: "build-on-prev-knowledge"
+      inputs:
+        required: ["session_one_learning", "foundations"]
+      outputs:
+        produced: ["session_two_learning", "expanded_knowledge"]
+
+    - id: assess_retention
+      agent: knowledge_assessor
+      action: "evaluate-knowledge-retention"
+      inputs:
+        required: ["session_two_learning", "expanded_knowledge"]
+      outputs:
+        produced: ["assessment_results", "retention_score"]
+
+    - id: consolidate_memory
+      agent: memory_consolidator
+      action: "organize-for-longterm-storage"
+      inputs:
+        required: ["assessment_results", "retention_score"]
+      outputs:
+        produced: ["consolidated_knowledge", "memory_fragments"]

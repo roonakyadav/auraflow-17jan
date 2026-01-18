@@ -1,0 +1,81 @@
+id: internet-activity-monitoring-demo
+
+context:
+  monitoring_period: "24 hours"
+  data_sources: ["news_api", "social_media", "research_papers"]
+  log_destination: "./network_logs"
+
+agents:
+  - id: network_monitor
+    role: "Network Activity Monitor"
+    goal: "Track and log all internet-based activities and API calls made during execution"
+    tools: ["web_search"]
+
+  - id: data_collector
+    role: "Data Collection Specialist"
+    goal: "Gather information from various online sources while logging all network requests"
+    tools: ["web_search"]
+
+  - id: api_tracker
+    role: "API Request Tracker"
+    goal: "Monitor and record all API calls, including endpoints, methods, and response times"
+    tools: ["web_search"]
+
+  - id: bandwidth_analyzer
+    role: "Bandwidth Usage Analyzer"
+    goal: "Analyze network traffic patterns and bandwidth consumption"
+    tools: ["web_search"]
+
+  - id: security_auditor
+    role: "Security Auditor"
+    goal: "Review network logs for potential security issues or suspicious activities"
+    tools: []
+
+  - id: report_generator
+    role: "Network Report Generator"
+    goal: "Generate comprehensive reports based on network activity logs"
+    tools: []
+
+workflow:
+  type: parallel
+  stopOnError: false
+  branches:
+    - id: collect_news_data
+      agent: data_collector
+      action: "gather-news-information"
+      inputs:
+        required: []
+      outputs:
+        produced: ["news_data", "api_requests_log"]
+
+    - id: collect_social_data
+      agent: data_collector
+      action: "gather-social-media-data"
+      inputs:
+        required: []
+      outputs:
+        produced: ["social_data", "network_activity_log"]
+
+    - id: collect_research_data
+      agent: data_collector
+      action: "gather-research-papers"
+      inputs:
+        required: []
+      outputs:
+        produced: ["research_data", "traffic_log"]
+
+    - id: monitor_network
+      agent: network_monitor
+      action: "monitor-network-activity"
+      inputs:
+        required: []
+      outputs:
+        produced: ["network_monitoring_log", "connection_stats"]
+
+  then:
+    agent: report_generator
+    action: "compile-network-activity-report"
+    inputs:
+      required: ["api_requests_log", "network_activity_log", "traffic_log", "connection_stats"]
+    outputs:
+      produced: ["network_activity_report", "bandwidth_usage_summary"]

@@ -1,0 +1,4 @@
+[2026-01-17T15:32:26.393Z] [INFO] [EXECUTOR] Starting execution of workflow: demo-workflow | Metadata: {"workflowId":"demo-workflow","workflowType":"sequential","agentCount":2,"stepCount":2,"branchCount":0}
+[2026-01-17T15:32:26.398Z] [INFO] [EXECUTOR] Starting agent: researcher | Metadata: {"agentId":"researcher","agentRole":"Research Assistant","stepId":"research_step"}
+[2026-01-17T15:32:30.562Z] [INFO] [EXECUTOR] Agent researcher execution completed | Metadata: {"agentId":"researcher","stepId":"research_step","success":true,"durationMs":4163,"outputLength":12204}
+[2026-01-17T15:32:30.568Z] [INFO] [EXECUTOR] Starting agent: writer | Metadata: {"agentId":"writer","agentRole":"Content Writer","stepId":"writing_step"}

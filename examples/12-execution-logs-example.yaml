@@ -1,0 +1,98 @@
+id: execution-logging-demo
+
+context:
+  workflow_name: "Complex Business Process"
+  log_level: "INFO"
+  log_path: "./execution_logs"
+
+agents:
+  - id: process_orchestrator
+    role: "Process Orchestrator"
+    goal: "Coordinate and monitor the execution of business processes with detailed logging"
+    tools: []
+
+  - id: data_validator
+    role: "Data Validation Specialist"
+    goal: "Validate incoming data and log validation results"
+    tools: []
+
+  - id: quality_checker
+    role: "Quality Assurance Agent"
+    goal: "Perform quality checks and log any issues found during execution"
+    tools: []
+
+  - id: audit_trail
+    role: "Audit Trail Maintainer"
+    goal: "Maintain comprehensive audit trail of all process steps and decisions"
+    tools: []
+
+  - id: log_analyzer
+    role: "Log Analysis Expert"
+    goal: "Analyze execution logs to identify patterns and optimize processes"
+    tools: []
+
+workflow:
+  type: conditional
+  stopOnError: false
+  steps:
+    - id: start_process
+      agent: process_orchestrator
+      action: "initiate-business-process"
+      inputs:
+        required: []
+      outputs:
+        produced: ["process_started", "initial_context"]
+
+    - id: validate_data
+      agent: data_validator
+      action: "perform-data-validation"
+      inputs:
+        required: ["initial_context"]
+      outputs:
+        produced: ["validation_results", "data_quality_score"]
+
+    - id: check_quality
+      agent: quality_checker
+      action: "perform-quality-checks"
+      inputs:
+        required: ["validation_results"]
+      outputs:
+        produced: ["quality_report", "compliance_status"]
+
+  condition:
+    stepId: check_quality
+    cases:
+      - condition: "compliant"
+        step:
+          id: compliant_path
+          agent: audit_trail
+          action: "record-compliant-execution"
+          inputs:
+            required: ["quality_report", "compliance_status"]
+          outputs:
+            produced: ["audit_record", "compliant_status"]
+      - condition: "non_compliant"
+        step:
+          id: non_compliant_path
+          agent: audit_trail
+          action: "record-non-compliant-execution"
+          inputs:
+            required: ["quality_report", "compliance_status"]
+          outputs:
+            produced: ["audit_record", "non_compliant_status"]
+    default:
+      id: default_path
+      agent: audit_trail
+      action: "record-default-execution"
+      inputs:
+        required: ["quality_report", "compliance_status"]
+      outputs:
+        produced: ["audit_record", "default_status"]
+
+  then:
+    agent: log_analyzer
+    action: "analyze-execution-logs"
+    inputs:
+      required: ["audit_record"]
+    outputs:
+      produced: ["analysis_report", "optimization_suggestions"]

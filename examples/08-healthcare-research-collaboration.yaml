@@ -1,0 +1,60 @@
+id: medical-ai-research-collaboration
+
+context:
+  research_domain: "Artificial intelligence applications in medical diagnosis"
+  collaboration_scope: "Multi-specialty research team studying AI diagnostic accuracy"
+  publication_target: "Peer-reviewed medical journals and clinical practice guidelines"
+
+agents:
+  - id: medical_researcher
+    role: "Clinical Medical Researcher"
+    goal: "Conduct literature review and clinical validation of AI diagnostic tools"
+    tools: ["web_search"]
+
+  - id: data_scientist
+    role: "Healthcare Data Scientist"
+    goal: "Analyze clinical trial data and AI model performance metrics"
+    tools: []
+
+  - id: regulatory_affairs
+    role: "Medical Device Regulatory Specialist"
+    goal: "Ensure research complies with FDA and international medical device regulations"
+    tools: ["web_search"]
+
+  - id: publication_coordinator
+    role: "Medical Publication Coordinator"
+    goal: "Synthesize findings into publishable research manuscripts and presentations"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: literature_review
+      agent: medical_researcher
+      action: "review_current_ai_medical_diagnosis_literature"
+      inputs:
+        required: []
+      outputs:
+        produced: ["clinical_evidence", "research_gaps"]
+    - id: data_analysis
+      agent: data_scientist
+      action: "analyze_ai_model_performance_and_validation_data"
+      inputs:
+        required: ["clinical_evidence"]
+      outputs:
+        produced: ["performance_metrics", "statistical_analysis"]
+    - id: regulatory_review
+      agent: regulatory_affairs
+      action: "assess_regulatory_compliance_and_approval_pathways"
+      inputs:
+        required: ["performance_metrics"]
+      outputs:
+        produced: ["regulatory_strategy", "compliance_framework"]
+    - id: manuscript_preparation
+      agent: publication_coordinator
+      action: "prepare_research_manuscript_and_submission_package"
+      inputs:
+        required: ["research_gaps", "statistical_analysis", "regulatory_strategy"]
+      outputs:
+        produced: ["final_manuscript", "publication_plan"]

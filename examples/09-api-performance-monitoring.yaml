@@ -1,0 +1,48 @@
+id: api-performance-benchmarking
+
+context:
+  service_type: "Cloud-based REST API services"
+  monitoring_objective: "Performance benchmarking and reliability assessment"
+  test_parameters: "Response time, uptime, error rates across different geographic regions"
+
+agents:
+  - id: performance_tester
+    role: "API Performance Tester"
+    goal: "Execute comprehensive performance tests and measure API response metrics"
+    tools: ["web_search"]
+
+  - id: reliability_analyst
+    role: "System Reliability Analyst"
+    goal: "Analyze uptime statistics and identify reliability patterns"
+    tools: []
+
+  - id: optimization_engineer
+    role: "Performance Optimization Engineer"
+    goal: "Recommend improvements based on performance test results"
+    tools: []
+
+workflow:
+  type: sequential
+  stopOnError: false
+  steps:
+    - id: load_testing
+      agent: performance_tester
+      action: "conduct_api_load_and_stress_testing"
+      inputs:
+        required: []
+      outputs:
+        produced: ["performance_metrics", "response_times"]
+    - id: reliability_assessment
+      agent: reliability_analyst
+      action: "analyze_uptime_and_error_rate_statistics"
+      inputs:
+        required: ["performance_metrics"]
+      outputs:
+        produced: ["reliability_scores", "failure_patterns"]
+    - id: optimization_recommendations
+      agent: optimization_engineer
+      action: "develop_performance_improvement_strategies"
+      inputs:
+        required: ["response_times", "reliability_scores"]
+      outputs:
+        produced: ["optimization_plan", "scaling_recommendations"]

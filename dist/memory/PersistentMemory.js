@@ -1,0 +1,218 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PersistentMemory = void 0;
+const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
+class PersistentMemory {
+    memoryEntries = [];
+    config;
+    context;
+    constructor(config, context) {
+        this.config = {
+            maxEntries: 1000,
+            autoSave: true,
+            ...config
+        };
+        this.context = context;
+        this.ensureStorageDirectory();
+    }
+    /**
+     * Ensure the storage directory exists
+     */
+    async ensureStorageDirectory() {
+        try {
+            await fs.mkdir(this.config.storagePath, { recursive: true });
+        }
+        catch (error) {
+            console.error(`Failed to create storage directory: ${error.message}`);
+        }
+    }
+    /**
+     * Load memory entries from persistent storage
+     */
+    async load() {
+        const memoryFilePath = path.join(this.config.storagePath, 'memory.json');
+        try {
+            const data = await fs.readFile(memoryFilePath, 'utf-8');
+            const loadedEntries = JSON.parse(data);
+            // Only load entries up to maxEntries limit
+            this.memoryEntries = loadedEntries.slice(-(this.config.maxEntries || 1000));
+            // Restore entries to context as well
+            for (const entry of this.memoryEntries) {
+                this.context.addMessage(entry.agentId, entry.content);
+            }
+        }
+        catch (error) {
+            // If file doesn't exist or is invalid, start fresh
+            if (error.code !== 'ENOENT') {
+                console.warn(`Could not load memory from file: ${error.message}`);
+            }
+            this.memoryEntries = [];
+        }
+    }
+    /**
+     * Save memory entries to persistent storage
+     */
+    async save() {
+        const memoryFilePath = path.join(this.config.storagePath, 'memory.json');
+        try {
+            // Limit entries to maxEntries
+            const entriesToSave = this.config.maxEntries
+                ? this.memoryEntries.slice(-this.config.maxEntries)
+                : this.memoryEntries;
+            await fs.writeFile(memoryFilePath, JSON.stringify(entriesToSave, null, 2));
+        }
+        catch (error) {
+            console.error(`Failed to save memory to file: ${error.message}`);
+        }
+    }
+    /**
+     * Add a new memory entry
+     */
+    async add(agentId, content, metadata = {}) {
+        const entry = {
+            id: `mem_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: Date.now(),
+            agentId,
+            content,
+            metadata
+        };
+        this.memoryEntries.push(entry);
+        // Maintain max entries limit
+        if (this.config.maxEntries && this.memoryEntries.length > this.config.maxEntries) {
+            this.memoryEntries = this.memoryEntries.slice(-this.config.maxEntries);
+        }
+        // Add to context as well
+        this.context.addMessage(agentId, content);
+        // Auto-save if enabled
+        if (this.config.autoSave) {
+            await this.save();
+        }
+    }
+    /**
+     * Retrieve memory entries by agent ID
+     */
+    getByAgent(agentId, limit) {
+        const filtered = this.memoryEntries.filter(entry => entry.agentId === agentId);
+        return limit ? filtered.slice(-limit) : filtered;
+    }
+    /**
+     * Get all memory entries (used by vector memory system)
+     */
+    getAllEntries() {
+        return [...this.memoryEntries]; // Return copy to prevent external mutation
+    }
+    /**
+     * Retrieve recent memory entries
+     */
+    getRecent(limit = 10) {
+        return this.memoryEntries.slice(-limit);
+    }
+    /**
+     * Search memory entries by content
+     */
+    search(searchTerm, limit = 10) {
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const matches = this.memoryEntries.filter(entry => entry.content.toLowerCase().includes(lowerSearchTerm) ||
+            JSON.stringify(entry.metadata).toLowerCase().includes(lowerSearchTerm));
+        return matches.slice(-limit);
+    }
+    /**
+     * Clear all memory entries
+     */
+    async clear() {
+        this.memoryEntries = [];
+        this.context.messages = []; // Clear the context messages directly
+        if (this.config.autoSave) {
+            await this.save();
+        }
+    }
+    /**
+     * Get memory statistics
+     */
+    getStats() {
+        if (this.memoryEntries.length === 0) {
+            return {
+                totalEntries: 0,
+                agents: [],
+                oldest: 0,
+                newest: 0
+            };
+        }
+        const agents = [...new Set(this.memoryEntries.map(entry => entry.agentId))];
+        const timestamps = this.memoryEntries.map(entry => entry.timestamp);
+        return {
+            totalEntries: this.memoryEntries.length,
+            agents,
+            oldest: Math.min(...timestamps),
+            newest: Math.max(...timestamps)
+        };
+    }
+    /**
+     * Export memory to a different format
+     */
+    export(format = 'json') {
+        if (format === 'json') {
+            return JSON.stringify(this.memoryEntries, null, 2);
+        }
+        else {
+            return this.memoryEntries.map(entry => `[${new Date(entry.timestamp).toISOString()}] ${entry.agentId}: ${entry.content}`).join('\n');
+        }
+    }
+    /**
+     * Import memory from a serialized format
+     */
+    async import(serializedData, format = 'json') {
+        if (format === 'json') {
+            const importedEntries = JSON.parse(serializedData);
+            this.memoryEntries = importedEntries;
+        }
+        else {
+            // Simple text import - not implemented in detail for this version
+            console.warn('Text import not fully implemented');
+        }
+        // Reload context from memory entries
+        this.context.messages = [];
+        for (const entry of this.memoryEntries) {
+            this.context.addMessage(entry.agentId, entry.content);
+        }
+        if (this.config.autoSave) {
+            await this.save();
+        }
+    }
+}
+exports.PersistentMemory = PersistentMemory;
+//# sourceMappingURL=PersistentMemory.js.map

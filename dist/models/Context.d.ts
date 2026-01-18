@@ -33,6 +33,10 @@ export declare class Context {
      */
     getMessages(): Message[];
     /**
+     * Clears all messages from the shared context
+     */
+    clear(): void;
+    /**
      * Adds or updates an output in the shared context
      * @param key - Key to store the output under
      * @param value - Value of the output
